@@ -19,6 +19,7 @@ print(parte_b, len(parte_b))
 def rmsValue(arr):
     n = len(arr)
     square = 0.0
+    
     for i in range(0, n):
         square += (float(arr[i])*float(arr[i]))
 
