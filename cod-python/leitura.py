@@ -20,7 +20,7 @@ def rmsValue(arr):
     n = len(arr)
     square = 0.0
     
-    for i in range(0, n):
+    for i in range(44, 168):
         square += (float(arr[i])*float(arr[i]))
 
     mean = square/(float(n))
@@ -29,16 +29,16 @@ def rmsValue(arr):
 
 
 
-y_rms = rmsValue(parte_b)
+y_rms = rmsValue(parte_a)
 print('   ')
 print(y_rms)
 
-plt.plot(parte_a, parte_b)
-plt.xticks(parte_a, " ")
-plt.yticks(parte_b, " ")
+plt.plot(parte_b, parte_a)
+plt.yticks(parte_a, " ")
+plt.xticks(parte_b, " ")
 
 plt.ylabel('Vin (V)')
-plt.ylabel('t (us)')
+plt.xlabel('t (us)')
 
 plt.show()
 
