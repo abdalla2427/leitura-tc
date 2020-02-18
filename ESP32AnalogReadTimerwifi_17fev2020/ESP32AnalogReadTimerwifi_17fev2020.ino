@@ -2,17 +2,20 @@
 
  */
 #include <WiFi.h>
-#include <math.h>
+//#include <math.h>
 
-#define ADC_SAMPLES 256
+//const char* ssid     = "GVT-596D";
+//const char* password = "laion123";
 
-const char* ssid     = "GVT-596D";
-const char* password = "laion123";
+const char* ssid     = "TEE_420A";
+const char* password = "#L@BTEE#";
 
 WiFiServer server(80);
 
+#define ADC_SAMPLES 256
 
-hw_timer_t * timer = NULL;
+hw_timer_t* timer0 = NULL;
+hw_timer_t* timer1 = NULL;
 volatile SemaphoreHandle_t timerSemaphore;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -20,6 +23,8 @@ static DRAM_ATTR uint32_t isrCounter = 0;
 volatile uint32_t lastIsrAt = 0;
 static DRAM_ATTR uint32_t adc_data[ADC_SAMPLES];
 static DRAM_ATTR uint32_t sampletime_us[ADC_SAMPLES];
+static uint32_t buffer_adc_data[ADC_SAMPLES];
+static uint32_t buffer_sampletime_us[ADC_SAMPLES];
 
 void IRAM_ATTR onTimer(){
   // Increment the counter and set the time of ISR
@@ -34,20 +39,13 @@ void IRAM_ATTR onTimer(){
   // It is safe to use digitalRead/Write here if you want to toggle an output
 }
 
-float calcularRms(uint32_t arr[]) {
-  uint32_t square = 0;
-  
-  for (int i = 43; i <= 167 ;i++) {
-    square += arr[i]*arr[i];
-    Serial.println(arr[i]);
-    Serial.println(square);
-  }
-  double mean = ((double)square)/256;
-  return (double)sqrt(mean);
+void IRAM_ATTR funcaoTimer1(){
+      timerRestart(timer0);
 }
 
 void setup() {
   Serial.begin(115200);
+  
   // We start by connecting to a WiFi network
   
   Serial.println();
@@ -74,20 +72,29 @@ void setup() {
   // Create semaphore to inform us when the timer has fired
   timerSemaphore = xSemaphoreCreateBinary();
 
+  timer0 = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer0, &onTimer, true);
+  timerAlarmWrite(timer0, 100, true);
+  timerAlarmEnable(timer0);
+  timerStop(timer0);
   // Use 1st timer of 4 (counted from zero).
   // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
   // info).
-  timer = timerBegin(0, 80, true);
+ // timer0 = timerBegin(0, 80, true);
+  timer1 = timerBegin(1, 80, true);
 
   // Attach onTimer function to our timer.
-  timerAttachInterrupt(timer, &onTimer, true);
+//  timerAttachInterrupt(timer0, &onTimer, true);
+  timerAttachInterrupt(timer1, &funcaoTimer1, true);
 
   // Set alarm to call onTimer function every second (value in microseconds).
   // Repeat the alarm (third parameter)
-  timerAlarmWrite(timer, 100, true);
+//  timerAlarmWrite(timer0, 100, true);
+  timerAlarmWrite(timer1, 5000000, true);
+
 
   // Start an alarm
-  timerAlarmEnable(timer);
+  timerAlarmEnable(timer1);
 }
 
 void loop() {
@@ -102,29 +109,34 @@ void loop() {
   // Se todas as ADC_SAMPLES amostras já foram lidas
   if (isrCount >ADC_SAMPLES-1) {
     // If timer is still running
-    if (timer) {
+    if (timer0) {
       // Stop and free timer
-      timerEnd(timer);
-      timer = NULL;
+      timerStop(timer0);
+//      timer0 = NULL;
       // Print it
       Serial.print("Timer executado ");
       Serial.print(isrCounter);
       Serial.println(" vezes.");
-      Serial.println(calcularRms(adc_data));
+      isrCounter = 0;
       for (int i=0;i<ADC_SAMPLES;i++)
       {
-        Serial.print(adc_data[i]);
-        if (i<(ADC_SAMPLES-1))
-          Serial.print(",");
+        buffer_adc_data[i] = adc_data[i]; 
+        buffer_sampletime_us[i] = sampletime_us[i];
       }
-      Serial.println();
-      for (int i=0;i<ADC_SAMPLES;i++)
-      {
-        Serial.print(sampletime_us[i]);
-        if (i<(ADC_SAMPLES-1))
-          Serial.print(",");
-      }
-      Serial.println();
+//      for (int i=0;i<ADC_SAMPLES;i++)
+//      {
+//        Serial.print(adc_data[i]);
+//        if (i<(ADC_SAMPLES-1))
+//          Serial.print(",");
+//      }
+//      Serial.println();
+//      for (int i=0;i<ADC_SAMPLES;i++)
+//      {
+//        Serial.print(sampletime_us[i]);
+//        if (i<(ADC_SAMPLES-1))
+//          Serial.print(",");
+//      }
+//      Serial.println();
     }
   }
   
@@ -157,7 +169,7 @@ void loop() {
           //  client.print(" vezes.<br>");
             for (int i=0;i<ADC_SAMPLES;i++)
             {
-              client.print(adc_data[i]);
+              client.print(buffer_adc_data[i]);
               if (i<(ADC_SAMPLES-1))
                 client.print(",");
             }
@@ -165,7 +177,7 @@ void loop() {
             client.print("MUDOU");
             for (int i=0;i<ADC_SAMPLES;i++)
             {
-              client.print(sampletime_us[i]);
+              client.print(buffer_sampletime_us[i]);
               if (i<(ADC_SAMPLES-1))
                 client.print(",");
             }
