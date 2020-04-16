@@ -12,7 +12,7 @@ export default function YourApp() {
   const [idIntervalo, setIdIntervalo] = useState();
   const [ipParaCaptura, setIpParaCaptura] = useState('http://192.168.25.17:5000/i_rms_data');
   const [leituraEmAndamento, setLeituraEmAndamento] = useState(false);
-  const [ultimoValorDoContador, setUltimoValorDoContador] = useState(0);
+  var [ultimoValorDoContador, setUltimoValorDoContador] = useState(0);
   const [tempoReferencia, setTempoReferencia] = useState([]);
 
   const startRmsCapture = () => {
@@ -28,9 +28,13 @@ export default function YourApp() {
 
             rmsAux = resposta[0].split(",");
             proximaPosicao = Number(resposta[1]);
-            
-            let delta;
 
+            // console.log();
+            // console.log('vetor inteiro chegando', rmsAux);
+            // console.log();
+
+
+            let delta;
             if (valoresRms.length == 0) {
               delta = rmsAux.length; // primeira vez
               tempoReferencia.push(Date.now());
@@ -38,17 +42,24 @@ export default function YourApp() {
             }
             else {
               delta = proximaPosicao - ultimoValorDoContador;
-              if (proximaPosicaom < ultimoValorDoContador) {
+              if (proximaPosicao <= ultimoValorDoContador) {
                 delta = rmsAux.length - ultimoValorDoContador + proximaPosicao;
               }
             }
-
+            // console.log('utlima posicao', ultimoValorDoContador);
+            // console.log('proxima posicao', proximaPosicao);
             rmsAux = rmsAux.slice(rmsAux.length - delta);
+            
+            // console.log();
+            // console.log('vetor apos o slice', rmsAux);
+            // console.log();
 
-            rmsAux.forEach((element, index) => {
+            rmsAux.forEach((element) => {
               valoresRms.push(element);
+              console.log(element);
             });
-            setUltimoValorDoContador(proximaPosicao);
+            console.log();
+            ultimoValorDoContador = proximaPosicao;
           })
           .catch(function (error) {
             console.log(error);
