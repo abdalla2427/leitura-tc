@@ -1,39 +1,59 @@
 import React, { useState, useEffect, Component } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import axios from 'react-native-axios';
 import RNFetchBlob from 'rn-fetch-blob';
 import Share from 'react-native-share';
-import { Button, Card, TextInput } from 'react-native-paper';
-import { ReloadInstructions } from 'react-native/Libraries/NewAppScreen';
+import { Button, Card, TextInput, Text, Switch } from 'react-native-paper';
 
 
 export default function YourApp() {
   const [valoresRms, setValoresRms] = useState([]);
   const [valoresDeTempo, setValoresDeTempo] = useState([]);
-  const [ultimoValorRmsLido, setUltimoValorRmsLido] = useState(0);
   const [idIntervalo, setIdIntervalo] = useState();
-  const [ipParaCaptura, setIpParaCaptura] = useState('http://192.168.25.17:5000/');
+  const [ipParaCaptura, setIpParaCaptura] = useState('http://192.168.25.17:5000/i_rms_data');
   const [leituraEmAndamento, setLeituraEmAndamento] = useState(false);
+  const [ultimoValorDoContador, setUltimoValorDoContador] = useState(0);
+  const [tempoReferencia, setTempoReferencia] = useState([]);
 
   const startRmsCapture = () => {
-    console.log(ipParaCaptura);
     if (!leituraEmAndamento) {
       setIdIntervalo(setInterval(() => {
         axios.get(ipParaCaptura)
           .then((result) => {
-            let valorAtualRms = valoresRms;
-            let valorAtualDeTempo = valoresDeTempo;
+            let resposta = result.data;
+            let proximaPosicao;
+            let rmsAux = []
 
-            valorAtualRms.push(result.data.ValorRms);
-            valorAtualDeTempo.push(result.data.Tempo);
-            setValoresRms(valorAtualRms);
-            setValoresDeTempo(valorAtualDeTempo);
-            setUltimoValorRmsLido(result.data.ValorRms);
+            resposta = resposta.toString().split(" ");
+
+            rmsAux = resposta[0].split(",");
+            proximaPosicao = Number(resposta[1]);
+            
+            let delta;
+
+            if (valoresRms.length == 0) {
+              delta = rmsAux.length; // primeira vez
+              tempoReferencia.push(Date.now());
+              tempoReferencia.push(rmsAux.length - 1);
+            }
+            else {
+              delta = proximaPosicao - ultimoValorDoContador;
+              if (proximaPosicaom < ultimoValorDoContador) {
+                delta = rmsAux.length - ultimoValorDoContador + proximaPosicao;
+              }
+            }
+
+            rmsAux = rmsAux.slice(rmsAux.length - delta);
+
+            rmsAux.forEach((element, index) => {
+              valoresRms.push(element);
+            });
+            setUltimoValorDoContador(proximaPosicao);
           })
           .catch(function (error) {
             console.log(error);
           })
-      }, 500));
+      }, 1 * 1000));
     }
     setLeituraEmAndamento(true);
   }
@@ -45,7 +65,17 @@ export default function YourApp() {
     }
   }
 
+  const verificarEstado = () => {
+    if (!leituraEmAndamento) {
+      startRmsCapture();
+    } 
+    else {
+      stopRmsCapture();
+    }
+  }
+
   const exportCsv = () => {
+    stopRmsCapture();
     var dirs = RNFetchBlob.fs.dirs
     const lugar = dirs.DocumentDir + '/Rms.csv';
     RNFetchBlob.fs
@@ -55,6 +85,8 @@ export default function YourApp() {
           .readFile(lugar, 'utf-8')
           .then((data) => {
             Share.open({ url: `file://${lugar}` })
+            .then((result) => console.log("salvo com sucesso"))
+            .catch((error) => console.log(error));
           })
           .catch((error) => console.log(error));
       })
@@ -62,20 +94,34 @@ export default function YourApp() {
 
   const montarCsv = () => {
     let csvRms, csvTempo, arquivoCsv;
+    valoresDeTempo.map(x => x)
     csvRms = valoresRms.toString();
-    csvTempo = valoresDeTempo.toString();
-    arquivoCsv = 'Rms,' + csvRms + '\n' + 'Tempo,' + csvTempo;
+    arquivoCsv = 'Rms,' + csvRms + '\n' + 'Tempo,' //+ csvTempo;
+    for (var tempo = tempoReferencia[0] - (500 * tempoReferencia[1]); tempo < tempoReferencia[0] + (500 * (valoresRms.length - 1 - tempoReferencia[1])); tempo+= 500) {
+      arquivoCsv += timeStamp(new Date(tempo));
+      arquivoCsv = arquivoCsv.slice(0, -1);
+    }
     return arquivoCsv;
+  }
+
+  const timeStamp = (a) => {
+    return a.getDate().toString().padStart(2, "0") + "/"
+    + (a.getMonth() + 1).toString().padStart(2, "0") + "/"
+    + a.getFullYear() + " " 
+    + a.getHours().toString().padStart(2, "0") + ":" 
+    + a.getMinutes().toString().padStart(2, "0") + ":" 
+    + a.getSeconds().toString().padStart(2, "0") + "." 
+    + a.getMilliseconds().toString().padStart(3, "0");
   }
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       justifyContent: "space-between",
-      backgroundColor: "#fff",
+      backgroundColor: "#fafafa",
     },
     botoesCaptura: {
-      backgroundColor: "#f4eeff",
+      backgroundColor: "#bbcfff",
       marginVertical: 2}
   })
 
@@ -101,7 +147,7 @@ export default function YourApp() {
             <TextInput placeholder="http://192.168.25.17:5000/i_rms_data" mode='outlined' disabled={leituraEmAndamento} onChangeText={texto => { ipAtual = texto }}></TextInput>
           </Card.Content>
           <Card.Actions style={{ alignSelf: "center" }}>
-            <Button style={{backgroundColor: "#f4eeff"}}onPress={() => setIpParaCaptura(ipAtual)}> Mudar o Ip</Button>
+            <Button disabled={leituraEmAndamento} mode="outlined" style={{backgroundColor: "#f4eeff"}}onPress={() => {if (ipAtual) setIpParaCaptura(ipAtual)}}> Mudar a URL</Button>
           </Card.Actions>
         </Card>
       </View>
@@ -111,14 +157,19 @@ export default function YourApp() {
   return (
     <View style={styles.container}>
       <MudarIp></MudarIp>
-      <Texto valor={ultimoValorRmsLido}></Texto>
+      <Texto></Texto>
       <Card>
         <Card.Content>
           <Card.Actions>
             <View style={styles.container}>
-              <Button style={styles.botoesCaptura} onPress={() => startRmsCapture()}>Start</Button>
-              <Button style={styles.botoesCaptura} onPress={() => stopRmsCapture()}>Stop</Button>
-              <Button style={styles.botoesCaptura} onPress={() => exportCsv()}>Exportar .CSV</Button>
+              <View style={{ flex: 1, alignSelf: "center", justifyContent: "center", paddingVertical: 40, alignItems: "center", flexDirection: "row"}}>
+                <Text>Estado da Captura</Text>
+                <Switch
+                  value={leituraEmAndamento}
+                  onValueChange={()=> verificarEstado()}
+                />
+              </View>
+              <Button mode="outlined" style={styles.botoesCaptura} onPress={() => exportCsv()}>Exportar .CSV</Button>
             </View>
           </Card.Actions>
         </Card.Content>
