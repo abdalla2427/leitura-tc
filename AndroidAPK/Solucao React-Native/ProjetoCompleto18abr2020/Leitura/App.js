@@ -99,9 +99,12 @@ export default function YourApp() {
     valoresDeTempo.map(x => x)
     csvRms = valoresRms.toString();
     arquivoCsv = 'Rms,' + csvRms + '\n' + 'Tempo,' //+ csvTempo;
-    for (var tempo = tempoReferencia[0] - (500 * tempoReferencia[1]); tempo < tempoReferencia[0] + (500 * (valoresRms.length - 1 - tempoReferencia[1])); tempo+= 500) {
-      arquivoCsv += timeStamp(new Date(tempo));
-      arquivoCsv = arquivoCsv.slice(0, -1);
+    for (var tempo = tempoReferencia[0] - (500 * tempoReferencia[1]); tempo < tempoReferencia[0] + (500 * (valoresRms.length - tempoReferencia[1])); tempo+= 500) {
+      arquivoCsv += timeStamp(new Date(tempo))
+      if (tempo < tempoReferencia[0] + (500 * (valoresRms.length - 1 - tempoReferencia[1])))
+      {
+        arquivoCsv += ',';
+      }
     }
     return arquivoCsv;
   }
