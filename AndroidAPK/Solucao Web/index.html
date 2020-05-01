@@ -1,0 +1,32 @@
+<h1>Acoes</h1>
+<input type="submit" value="Start" onclick="fazerRequisicao('comecar_captura')">
+<br>
+<input type="submit" value="Pausar" onclick="fazerRequisicao('pausar_captura')">
+
+<form name="myform" action="http://localhost:5000/montar_csv" method="get">
+    <input type="submit" name="Exportar .csv" id="query"/>
+</form>
+
+<form name="myform" action="http://localhost:5000/alterarIp" method="post">
+    <input type="text" name="ip" id="query"/>
+    <button>Mudar Ip Monitorado</button>
+</form>
+
+<form name="myform" action="http://localhost:5000/alterarTempo" method="post">
+    <input type="text" name="tempo" id="query"/>
+    <button>Alterar o tempo Entre capturas</button>
+</form>
+
+<script type="text/javascript">
+    function fazerRequisicao(value) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                alert(xhr.response);
+            }
+        }
+        xhr.open('get', 'http://localhost:5000/' + value, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+        xhr.send();
+    }
+</script>
