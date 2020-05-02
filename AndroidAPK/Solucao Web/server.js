@@ -13,9 +13,11 @@ var apiPort = 4200
 var ipParaCaptura = 'http://192.168.25.17'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
-var tempoReferencia = []
 var valoresRms = []
 var dataCsv = []
+var tempoReferencia
+var primeiraCapturaDepoisDeResetar = true
+var caminhoUltimoCsvGerado
 
 const app = express()
 
@@ -23,12 +25,12 @@ app.use(bodyParser.json())
 
 app.get('/', (req,res) => {
     res.sendFile(path.join(__dirname+'/index.html'));
-    //res.render('index')
 })
 
 //#region endpoints
 app.get('/comecar_captura', (req, res) => {
     if (!capturando) {
+        if (valoresRms.length) montarCsv()
         idIntervalo  = setInterval(() => {
             comecarCaptura()
         }, tempoEntreCapturas)
@@ -49,8 +51,10 @@ app.get('/valores_capturados', (req, res) => {
 })
 
 app.get('/montar_csv', (req, res) => {
+    pausarCaptura()
     montarCsv();
-    res.download('./rms.csv')
+	setTimeout(() => {res.download(caminhoUltimoCsvGerado)}, 2000)
+    
 })
 
 app.get('/alterarTempo', (req, res) => {
@@ -65,35 +69,53 @@ const comecarCaptura = () => {
         let resposta = result.data;
         let proximaPosicao;
         let rmsAux = []
+
         resposta = resposta.toString().split(" ");
 
         rmsAux = resposta[0].split(",");
-        console.log('vetor inteiro', rmsAux);
-        console.log()
         proximaPosicao = Number(resposta[1]);
 
-        let delta;
-        if (valoresRms.length == 0) {
-          delta = rmsAux.length; // primeira vez
-          tempoReferencia.push(Date.now() - 500 * rmsAux.length);
-          tempoReferencia.push(rmsAux.length - 1);
+        console.log(ultimoValorDoContador, proximaPosicao);
+        console.log((rmsAux[0]), primeiraCapturaDepoisDeResetar)
+
+        if (!(rmsAux[0] == 0) && !primeiraCapturaDepoisDeResetar) {
+            primeiraCapturaDepoisDeResetar = true;
+            console.log('c');
+        }
+        if ((rmsAux[0] == 0) && primeiraCapturaDepoisDeResetar) {
+            montarCsv()
+            rmsAux.forEach(element => {
+                if (element != 0) {
+                    valoresRms.push(element)
+                    console.log('elemento', element)
+                }
+            })
+            console.log(rmsAux, 'a');
+            primeiraCapturaDepoisDeResetar = false
         }
         else {
-          delta = proximaPosicao - ultimoValorDoContador;
-          if (proximaPosicao <= ultimoValorDoContador) {
-            delta = rmsAux.length - ultimoValorDoContador + proximaPosicao;
-          }
-        }
-
-        console.log('amostras', ultimoValorDoContador, proximaPosicao);
-        rmsAux = rmsAux.slice(rmsAux.length - delta);      
-
-        rmsAux.forEach((element) => {
-          valoresRms.push(element);
-          console.log(element);
-        });
-        console.log();
+            let delta;
+            if (valoresRms.length == 0) {
+              delta = rmsAux.length; // primeira vez
+              tempoReferencia = Date.now() - 500 * rmsAux.length;
+            }
+            else {
+              delta = proximaPosicao - ultimoValorDoContador;
+              if (proximaPosicao <= ultimoValorDoContador) {
+                delta = rmsAux.length - ultimoValorDoContador + proximaPosicao;
+              }
+            }
+            console.log(rmsAux, 'b');
+    
+            console.log('amostras', ultimoValorDoContador, proximaPosicao);
+            rmsAux = rmsAux.slice(rmsAux.length - delta);         
+            rmsAux.forEach((element) => {
+                valoresRms.push(element);
+            });
+            //console.log('c')
+        } 
         ultimoValorDoContador = proximaPosicao;
+        console.log('valores RMs', valoresRms)
       })
       .catch(function (error) {
         console.log(error);
@@ -103,6 +125,29 @@ const comecarCaptura = () => {
 const pausarCaptura = () => {
     clearInterval(idIntervalo)
     capturando = false;
+}
+
+const montarCsv = () => {
+    
+    caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
+    
+    valoresRms.forEach((element, index) => dataCsv.push({
+        ValoresRms: element,
+        Tempo: timeStamp(new Date(500 * index + tempoReferencia)),
+    }))
+    
+    try{
+        
+        const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, {append:false});
+        valoresRms = [];
+        ultimoValorDoContador = 0;
+        dataCsv = []
+        return csv
+    }
+    catch (e){
+        console.log(e)
+    }
+    
 }
 
 const timeStamp = (a) => {
@@ -115,27 +160,14 @@ const timeStamp = (a) => {
     + a.getMilliseconds().toString().padStart(3, "0");
 }
 
-const montarCsv = async () => {
-    pausarCaptura()
-    valoresRms.forEach((element, index) => dataCsv.push({
-        ValoresRms: element,
-        Tempo: timeStamp(new Date(500 * index + tempoReferencia[0])),
-    }))
-
-    // var index = 0
-    // for (var tempo = tempoReferencia[0] - (500 * tempoReferencia[1]); tempo < tempoReferencia[0] + (500 * (valoresRms.length - tempoReferencia[1])); tempo+= 500) {
-    //     dataCsv[index].Tempo = timeStamp(new Date(tempo))
-    //     index++
-    // }
-    try{
-        const csv = await new ObjectsToCsv(dataCsv).toDisk('./rms.csv');
-       
-        //await console.log(csv.toString());
-    }
-    catch (e){
-        console.log(e)
-    }
-      
+const fileTimeStamp = (a) => {
+    return a.getDate().toString().padStart(2, "0") 
+    + (a.getMonth() + 1).toString().padStart(2, "0") 
+    + a.getFullYear()  
+    + a.getHours().toString().padStart(2, "0")
+    + a.getMinutes().toString().padStart(2, "0") 
+    + a.getSeconds().toString().padStart(2, "0") 
+    + a.getMilliseconds().toString().padStart(3, "0");
 }
 
 app.listen(PORT, function(){
