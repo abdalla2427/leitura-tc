@@ -58,7 +58,12 @@ app.get('/montar_csv', (req, res) => {
 })
 
 app.get('/alterarTempo', (req, res) => {
-    console.log(req);
+    tempoEntreCapturas = req.query.tempo;
+})
+
+app.get('/alterarIp', (req, res) => {
+    ipParaCaptura = `http://${req.query.ip}`
+    ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data';
 })
 //#endregion
 
@@ -80,14 +85,12 @@ const comecarCaptura = () => {
 
         if (!(rmsAux[0] == 0) && !primeiraCapturaDepoisDeResetar) {
             primeiraCapturaDepoisDeResetar = true;
-            console.log('c');
         }
         if ((rmsAux[0] == 0) && primeiraCapturaDepoisDeResetar) {
             montarCsv()
             rmsAux.forEach(element => {
                 if (element != 0) {
                     valoresRms.push(element)
-                    console.log('elemento', element)
                 }
             })
             console.log(rmsAux, 'a');
@@ -112,7 +115,6 @@ const comecarCaptura = () => {
             rmsAux.forEach((element) => {
                 valoresRms.push(element);
             });
-            //console.log('c')
         } 
         ultimoValorDoContador = proximaPosicao;
         console.log('valores RMs', valoresRms)
