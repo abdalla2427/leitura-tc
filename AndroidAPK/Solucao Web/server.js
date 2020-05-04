@@ -9,7 +9,7 @@ const PORT = 5000
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 1000
-var apiPort = 4200
+var apiPort = 80
 var ipParaCaptura = 'http://192.168.25.17'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
@@ -53,12 +53,11 @@ app.get('/valores_capturados', (req, res) => {
 app.get('/montar_csv', (req, res) => {
     pausarCaptura()
     montarCsv();
-	setTimeout(() => {res.download(caminhoUltimoCsvGerado)}, 2000)
-    
+	setTimeout(() => {res.download(caminhoUltimoCsvGerado, 'rms.csv')}, 2000)
 })
 
 app.get('/alterarTempo', (req, res) => {
-    tempoEntreCapturas = req.query.tempo;
+    tempoEntreCapturas = req.query.tempo * 1000;
 })
 
 app.get('/alterarIp', (req, res) => {
@@ -80,9 +79,6 @@ const comecarCaptura = () => {
         rmsAux = resposta[0].split(",");
         proximaPosicao = Number(resposta[1]);
 
-        console.log(ultimoValorDoContador, proximaPosicao);
-        console.log((rmsAux[0]), primeiraCapturaDepoisDeResetar)
-
         if (!(rmsAux[0] == 0) && !primeiraCapturaDepoisDeResetar) {
             primeiraCapturaDepoisDeResetar = true;
         }
@@ -93,7 +89,6 @@ const comecarCaptura = () => {
                     valoresRms.push(element)
                 }
             })
-            console.log(rmsAux, 'a');
             primeiraCapturaDepoisDeResetar = false
         }
         else {
@@ -108,16 +103,13 @@ const comecarCaptura = () => {
                 delta = rmsAux.length - ultimoValorDoContador + proximaPosicao;
               }
             }
-            console.log(rmsAux, 'b');
     
-            console.log('amostras', ultimoValorDoContador, proximaPosicao);
             rmsAux = rmsAux.slice(rmsAux.length - delta);         
             rmsAux.forEach((element) => {
                 valoresRms.push(element);
             });
         } 
         ultimoValorDoContador = proximaPosicao;
-        console.log('valores RMs', valoresRms)
       })
       .catch(function (error) {
         console.log(error);
@@ -139,12 +131,10 @@ const montarCsv = () => {
     }))
     
     try{
-        
         const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, {append:false});
         valoresRms = [];
         ultimoValorDoContador = 0;
         dataCsv = []
-        return csv
     }
     catch (e){
         console.log(e)
