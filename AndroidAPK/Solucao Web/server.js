@@ -79,6 +79,8 @@ const comecarCaptura = () => {
         rmsAux = resposta[0].split(",");
         proximaPosicao = Number(resposta[1]);
 
+        if (valoresRms.length == 0) tinhaZero = true;
+
         if (!(rmsAux[0] == 0) && !primeiraCapturaDepoisDeResetar) {
             primeiraCapturaDepoisDeResetar = true;
         }
@@ -95,7 +97,7 @@ const comecarCaptura = () => {
             let delta;
             if (valoresRms.length == 0) {
               delta = rmsAux.length; // primeira vez
-              tempoReferencia = Date.now() - 500 * rmsAux.length;
+              //tempoReferencia = Date.now() - 500 * rmsAux.length;
             }
             else {
               delta = proximaPosicao - ultimoValorDoContador;
@@ -109,6 +111,12 @@ const comecarCaptura = () => {
                 valoresRms.push(element);
             });
         } 
+
+        if (tinhaZero) {
+            tempoReferencia = Date.now() - 500 * valoresRms.length;
+            tinhaZero = false;
+        }
+
         ultimoValorDoContador = proximaPosicao;
       })
       .catch(function (error) {
