@@ -9,7 +9,8 @@ const PORT = 5000
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
-var apiPort = 17890
+var apiPort = 80
+//var apiPort = 17890 //ngrock
 var ipParaCaptura = 'http://192.168.25.17'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
