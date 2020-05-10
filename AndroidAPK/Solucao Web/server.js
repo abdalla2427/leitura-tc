@@ -87,11 +87,18 @@ const comecarCaptura = () => {
 
 
         if (valoresRms.length == 0) {//primeira captura
-            rmsAux.forEach(amostra => {
+            rmsAux.forEach((amostra, index) => {
                 if (amostra != 0) {
                     valoresRms.push(amostra);
                     console.log('primeiras amostras que entram', amostra)
                 }
+                else {
+                    if (rmsAux[index - 1] != 0 && rmsAux[index + 1] != 0) {
+                        valoresRms.push((rmsAux[index - 1] + rmsAux[index + 1]) / 2)
+                        console.log('passou aqui')
+                    }
+                }
+                
             })
             if (valoresRms.length) {
                 tempoReferencia = Date.now() - 500 * valoresRms.length;
@@ -108,10 +115,17 @@ const comecarCaptura = () => {
             }
             
             rmsAux = rmsAux.slice(tamanhoVetorRmsQueChegou - delta);
-            rmsAux.forEach(amostra => {
+
+            rmsAux.forEach((amostra, index) => {
                 if (amostra != 0) {
                     valoresRms.push(amostra);
                     console.log('amostras que entram', amostra)
+                }
+                else {
+                    if (rmsAux[index - 1] != 0 && rmsAux[index + 1] != 0) {
+                        valoresRms.push((rmsAux[index - 1] + rmsAux[index + 1]) / 2)
+                        console.log('passou aqui')
+                    }
                 }
             })
             
