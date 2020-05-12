@@ -9,8 +9,8 @@ const PORT = 5000
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
-// var apiPort = 80
-var apiPort = 16232 //ngrock
+var apiPort = 80
+//var apiPort = 16232 //ngrock
 var ipParaCaptura = 'http://192.168.25.17'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
@@ -19,6 +19,7 @@ var dataCsv = []
 var tempoReferencia
 var caminhoUltimoCsvGerado
 var numeroDeZerosAnterior = 0;
+var contadorDeTimeouts = 0;
 
 const app = express()
 
@@ -129,6 +130,10 @@ const comecarCaptura = () => {
       })
       .catch(function (error) {
         console.log(error);
+        contadorDeTimeouts++;
+        if (contadorDeTimeouts > 4) {
+            montarCsv();
+        }
       })
 }
 
