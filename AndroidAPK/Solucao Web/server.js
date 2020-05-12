@@ -9,8 +9,8 @@ const PORT = 5000
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
-var apiPort = 80
-//var apiPort = 17890 //ngrock
+// var apiPort = 80
+var apiPort = 16232 //ngrock
 var ipParaCaptura = 'http://192.168.25.17'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
@@ -18,6 +18,7 @@ var valoresRms = []
 var dataCsv = []
 var tempoReferencia
 var caminhoUltimoCsvGerado
+var numeroDeZerosAnterior = 0;
 
 const app = express()
 
@@ -76,29 +77,28 @@ const comecarCaptura = () => {
         resposta = resposta.toString().split(" ");
 
         rmsAux = resposta[0].split(",");
-        console.log('Antes do split', rmsAux.length, rmsAux[rmsAux.length -1]);
-        console.log('tamanho', rmsAux.length);
-        console.log('As que chegaram', rmsAux)
-        console.log('Posicao anterior', ultimoValorDoContador)
+        // console.log('Antes do split', rmsAux.length, rmsAux[rmsAux.length -1]);
+        // console.log('tamanho', rmsAux.length);
+        // console.log('As que chegaram', rmsAux)
+        // console.log('Posicao anterior', ultimoValorDoContador)
 
         proximaPosicao = Number(resposta[1]);
         tamanhoVetorRmsQueChegou = rmsAux.length;
-        console.log('Proxima posicao', proximaPosicao)
 
+        // console.log('Proxima posicao', proximaPosicao)
+
+        let numeroDeZerosAtual = rmsAux.filter(x => x == 0).length;
+
+        if (numeroDeZerosAtual > numeroDeZerosAnterior && valoresRms.length) {
+            montarCsv();
+        }
 
         if (valoresRms.length == 0) {//primeira captura
             rmsAux.forEach((amostra, index) => {
                 if (amostra != 0) {
                     valoresRms.push(amostra);
-                    console.log('primeiras amostras que entram', amostra)
-                }
-                else {
-                    if (rmsAux[index - 1] != 0 && rmsAux[index + 1] != 0) {
-                        valoresRms.push((rmsAux[index - 1] + rmsAux[index + 1]) / 2)
-                        console.log('passou aqui')
-                    }
-                }
-                
+                    // console.log('primeiras amostras que entram', amostra)
+                }               
             })
             if (valoresRms.length) {
                 tempoReferencia = Date.now() - 500 * valoresRms.length;
@@ -119,18 +119,13 @@ const comecarCaptura = () => {
             rmsAux.forEach((amostra, index) => {
                 if (amostra != 0) {
                     valoresRms.push(amostra);
-                    console.log('amostras que entram', amostra)
-                }
-                else {
-                    if (rmsAux[index - 1] != 0 && rmsAux[index + 1] != 0) {
-                        valoresRms.push((rmsAux[index - 1] + rmsAux[index + 1]) / 2)
-                        console.log('passou aqui')
-                    }
+                    // console.log('amostras que entram', amostra)
                 }
             })
             
         }
         ultimoValorDoContador = proximaPosicao;
+        numeroDeZerosAnterior = numeroDeZerosAtual;
       })
       .catch(function (error) {
         console.log(error);
@@ -138,7 +133,7 @@ const comecarCaptura = () => {
 }
 
 const pausarCaptura = () => {
-    console.log(valoresRms)
+    // console.log(valoresRms)
     clearInterval(idIntervalo)
     capturando = false;
 }
@@ -147,7 +142,6 @@ const montarCsv = () => {
     
     caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
     
-    console.log(valoresRms)
     valoresRms.forEach((element, index) => dataCsv.push({
         ValoresRms: element,
         Tempo: timeStamp(new Date(500 * index + tempoReferencia)),
