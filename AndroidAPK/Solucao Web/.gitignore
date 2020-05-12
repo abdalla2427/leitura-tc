@@ -3,3 +3,4 @@ api.py
 package-lock.json
 antigo.js
 lista.py
+__pycache__

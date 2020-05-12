@@ -10,7 +10,7 @@ var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
 var apiPort = 80
-//var apiPort = 16232 //ngrock
+// var apiPort = 16232 //ngrock
 var ipParaCaptura = 'http://192.168.25.17'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
@@ -74,6 +74,7 @@ const comecarCaptura = () => {
         let resposta = result.data;
         let proximaPosicao;
         let rmsAux = []
+        contadorDeTimeouts = 0
 
         resposta = resposta.toString().split(" ");
 
@@ -133,6 +134,7 @@ const comecarCaptura = () => {
         contadorDeTimeouts++;
         if (contadorDeTimeouts > 4) {
             montarCsv();
+            contadorDeTimeouts = 0;
         }
       })
 }
@@ -153,13 +155,16 @@ const montarCsv = () => {
     }))
     
     try{
-        const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, {append:false});
+        if (dataCsv.length) {
+            const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, {append:false});
+        }
     }
     catch (e){
         console.log(e)
     }
     valoresRms = [];
     ultimoValorDoContador = 0;
+    numeroDeZerosAnterior = 0;
     dataCsv = []
 }
 
