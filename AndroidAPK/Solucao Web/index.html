@@ -51,7 +51,7 @@
             if (xhr.readyState === 4) {
                 console.log(xhr.response);
                 ultimoCsv = JSON.parse(xhr.response);
-                downloadCSV('teste.csv')
+                downloadCSV(Date.now().toString() +  '.csv')
             }
         }
         xhr.open('get', `http://${ip}:${port}/montar_csv`, true);
