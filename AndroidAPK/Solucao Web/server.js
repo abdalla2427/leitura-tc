@@ -54,7 +54,7 @@ app.get('/valores_capturados', (req, res) => {
 app.get('/montar_csv', (req, res) => {
     pausarCaptura()
     montarCsv();
-	setTimeout(() => {res.download(caminhoUltimoCsvGerado, 'rms.csv')}, 2000)
+    res.send(dataCsv)
 })
 
 app.get('/alterarTempo', (req, res) => {
@@ -146,12 +146,14 @@ const pausarCaptura = () => {
 }
 
 const montarCsv = () => {
-    
+    dataCsv = []
+
     caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
     
     valoresRms.forEach((element, index) => dataCsv.push({
         ValoresRms: element,
         Tempo: timeStamp(new Date(500 * index + tempoReferencia)),
+        TimeStamp: (500 * index + tempoReferencia)
     }))
     
     try{
@@ -165,7 +167,6 @@ const montarCsv = () => {
     valoresRms = [];
     ultimoValorDoContador = 0;
     numeroDeZerosAnterior = 0;
-    dataCsv = []
 }
 
 const timeStamp = (a) => {
