@@ -4,14 +4,14 @@ const axios = require('axios')
 const path = require('path');
 const ObjectsToCsv = require('objects-to-csv');
 
-const PORT = 5000
+const PORT = 80
 
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
 var apiPort = 80
 // var apiPort = 16232 //ngrock
-var ipParaCaptura = 'http://192.168.25.17'
+var ipParaCaptura = 'http://a413511d.ngrok.io'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
 var valoresRms = []
@@ -54,7 +54,7 @@ app.get('/valores_capturados', (req, res) => {
 app.get('/montar_csv', (req, res) => {
     pausarCaptura()
     montarCsv();
-	setTimeout(() => {res.download(caminhoUltimoCsvGerado, 'rms.csv')}, 2000)
+	setTimeout(() => {res.download(caminhoUltimoCsvGerado)}, 2000)
 })
 
 app.get('/alterarTempo', (req, res) => {
@@ -146,7 +146,6 @@ const pausarCaptura = () => {
 }
 
 const montarCsv = () => {
-    
     caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
     
     valoresRms.forEach((element, index) => dataCsv.push({

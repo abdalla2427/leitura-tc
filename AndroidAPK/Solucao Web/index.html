@@ -11,6 +11,7 @@
     <input onclick="fazerRequisicao('montar_csv')" type="submit" value="Exportar .csv">
 </div>
 
+
 <div>
     <input id="alterarIp" type="text"/>
     <button onclick="mudarIp()">Mudar Ip Monitorado</button>
@@ -18,12 +19,13 @@
 
 <div>
     <input id="alterarTempo" type="text"/>
-    <button onclick="alterarTempoEntreCapturas()">Alterar o tempo Entre capturas</button>
+    <button onclick="fazerDownload()">Alterar o tempo Entre capturas</button>
 </div>
 
 <script type="text/javascript">
-    var ip = 'localhost'
-    var port = '5000'
+    var ip = '162.214.93.72'
+    var port = '80'
+    
     function fazerRequisicao(value) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
@@ -33,6 +35,18 @@
         }
         xhr.open('get', `http://${ip}:${port}/` + value, true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+        xhr.send();
+    }
+
+    function fazerDownload() {
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('get', `http://162.214.93.72/i_rms_data`, true);
+        xhr.responseType = "blob";
+
+        xhr.onload = function () {
+            saveData(this.response, 'filename.csv'); // saveAs is now your function
+        };
         xhr.send();
     }
 
