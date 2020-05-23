@@ -11,7 +11,6 @@
     <input onclick="montarCsv()" type="submit" value="Exportar .csv">
 </div>
 
-
 <div>
     <input id="alterarIp" type="text"/>
     <button onclick="mudarIp()">Mudar Ip Monitorado</button>
@@ -23,9 +22,11 @@
 </div>
 
 <script type="text/javascript">
-    var ip = 'localhost'
-    var port = '5000'
+    var ip = '162.214.93.72'
+    var port = '80'
     var ultimoCsv;
+
+    var name = "<%= teste %>";
 
     function fazerRequisicao(value) {
         var xhr = new XMLHttpRequest();
@@ -40,17 +41,17 @@
         xhr.send();
     }
 
-    function fazerDownload() {
+    // function fazerDownload() {
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('get', `http://162.214.93.72/i_rms_data`, true);
-        xhr.responseType = "blob";
+    //     var xhr = new XMLHttpRequest();
+    //     xhr.open('get', `http://162.214.93.72/i_rms_data`, true);
+    //     xhr.responseType = "blob";
 
-        xhr.onload = function () {
-            saveData(this.response, 'filename.csv'); // saveAs is now your function
-        };
-        xhr.send();
-    }
+    //     xhr.onload = function () {
+    //         saveData(this.response, 'filename.csv'); // saveAs is now your function
+    //     };
+    //     xhr.send();
+    // }
 
     function mudarIp(){
         let ip = document.getElementById('alterarIp').value;
