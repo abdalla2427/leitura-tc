@@ -1,16 +1,19 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const axios = require('axios')
+const express = require('express');
+const bodyParser = require('body-parser');
+const axios = require('axios');
 const path = require('path');
+const ejs = require('ejs');
 const ObjectsToCsv = require('objects-to-csv');
 
+
 const PORT = 80
+const caminhoArquivoDeLog = 'C:/Users/PICHAU/.pm2/logs/node-api-out.log';
 
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
 var apiPort = 80
-// var apiPort = 16232 //ngrock
+var nodeServerIp = 'localhost'
 var ipParaCaptura = 'http://a413511d.ngrok.io'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
@@ -21,18 +24,31 @@ var caminhoUltimoCsvGerado
 var numeroDeZerosAnterior = 0;
 var contadorDeTimeouts = 0;
 
+
 const app = express()
+
+
+app.set('view-engine', 'ejs')
 
 app.use(bodyParser.json())
 
-app.get('/', (req,res) => {
-    res.sendFile(path.join(__dirname+'/index.html'));
+app.get('/', (req, res) => {
+    res.render("index.ejs", {
+        ipAtual: ipParaCaptura.replace('http://', ''),
+        tempoEntreCapturas: tempoEntreCapturas,
+        nodeServerIp: nodeServerIp,
+        port: PORT
+    });
+})
+
+app.get('/log', (req, res) => {
+    res.sendFile(caminhoArquivoDeLog);
 })
 
 //#region endpoints
 app.get('/comecar_captura', (req, res) => {
     if (!capturando) {
-        idIntervalo  = setInterval(() => {
+        idIntervalo = setInterval(() => {
             comecarCaptura()
         }, tempoEntreCapturas)
         capturando = true
@@ -53,6 +69,7 @@ app.get('/valores_capturados', (req, res) => {
 
 app.get('/montar_csv', (req, res) => {
     pausarCaptura()
+    console.log(`O usuario Pediu para montar o csv [DEBUG] ${timeStamp(new Date())}`);
     montarCsv();
     res.send(dataCsv)
 })
@@ -70,73 +87,75 @@ app.get('/alterarIp', (req, res) => {
 
 const comecarCaptura = () => {
     axios.get(ipApi)
-      .then((result) => {
-        let resposta = result.data;
-        let proximaPosicao;
-        let rmsAux = []
-        contadorDeTimeouts = 0
+        .then((result) => {
+            let resposta = result.data;
+            let proximaPosicao;
+            let rmsAux = []
+            contadorDeTimeouts = 0
 
-        resposta = resposta.toString().split(" ");
+            resposta = resposta.toString().split(" ");
 
-        rmsAux = resposta[0].split(",");
-        // console.log('Antes do split', rmsAux.length, rmsAux[rmsAux.length -1]);
-        // console.log('tamanho', rmsAux.length);
-        // console.log('As que chegaram', rmsAux)
-        // console.log('Posicao anterior', ultimoValorDoContador)
+            rmsAux = resposta[0].split(",");
+            // console.log('Antes do split', rmsAux.length, rmsAux[rmsAux.length -1]);
+            // console.log('tamanho', rmsAux.length);
+            // console.log('As que chegaram', rmsAux)
+            // console.log('Posicao anterior', ultimoValorDoContador)
 
-        proximaPosicao = Number(resposta[1]);
-        tamanhoVetorRmsQueChegou = rmsAux.length;
+            proximaPosicao = Number(resposta[1]);
+            tamanhoVetorRmsQueChegou = rmsAux.length;
 
-        // console.log('Proxima posicao', proximaPosicao)
+            // console.log('Proxima posicao', proximaPosicao)
 
-        let numeroDeZerosAtual = rmsAux.filter(x => x == 0).length;
+            let numeroDeZerosAtual = rmsAux.filter(x => x == 0).length;
 
-        if (numeroDeZerosAtual > numeroDeZerosAnterior && valoresRms.length) {
-            montarCsv();
-        }
-
-        if (valoresRms.length == 0) {//primeira captura
-            rmsAux.forEach((amostra, index) => {
-                if (amostra != 0) {
-                    valoresRms.push(amostra);
-                    // console.log('primeiras amostras que entram', amostra)
-                }               
-            })
-            if (valoresRms.length) {
-                tempoReferencia = Date.now() - 500 * valoresRms.length;
+            if (numeroDeZerosAtual > numeroDeZerosAnterior && valoresRms.length) {
+                console.log(`O ESP3 Reiniciou [DEBUG] ${timeStamp(new Date())}`);
+                montarCsv();
             }
-        }
-        else {
-            let delta;
 
-            if (proximaPosicao > ultimoValorDoContador) {
-                delta = proximaPosicao - ultimoValorDoContador
+            if (valoresRms.length == 0) {//primeira captura
+                rmsAux.forEach((amostra, index) => {
+                    if (amostra != 0) {
+                        valoresRms.push(amostra);
+                        // console.log('primeiras amostras que entram', amostra)
+                    }
+                })
+                if (valoresRms.length) {
+                    tempoReferencia = Date.now() - 500 * valoresRms.length;
+                }
             }
             else {
-                delta = tamanhoVetorRmsQueChegou - ultimoValorDoContador + proximaPosicao
-            }
-            
-            rmsAux = rmsAux.slice(tamanhoVetorRmsQueChegou - delta);
+                let delta;
 
-            rmsAux.forEach((amostra, index) => {
-                if (amostra != 0) {
-                    valoresRms.push(amostra);
-                    // console.log('amostras que entram', amostra)
+                if (proximaPosicao > ultimoValorDoContador) {
+                    delta = proximaPosicao - ultimoValorDoContador
                 }
-            })
-            
-        }
-        ultimoValorDoContador = proximaPosicao;
-        numeroDeZerosAnterior = numeroDeZerosAtual;
-      })
-      .catch(function (error) {
-        console.log(error);
-        contadorDeTimeouts++;
-        if (contadorDeTimeouts > 4) {
-            montarCsv();
-            contadorDeTimeouts = 0;
-        }
-      })
+                else {
+                    delta = tamanhoVetorRmsQueChegou - ultimoValorDoContador + proximaPosicao
+                }
+
+                rmsAux = rmsAux.slice(tamanhoVetorRmsQueChegou - delta);
+
+                rmsAux.forEach((amostra, index) => {
+                    if (amostra != 0) {
+                        valoresRms.push(amostra);
+                        // console.log('amostras que entram', amostra)
+                    }
+                })
+
+            }
+            ultimoValorDoContador = proximaPosicao;
+            numeroDeZerosAnterior = numeroDeZerosAtual;
+        })
+        .catch(function (error) {
+            console.log(error);
+            contadorDeTimeouts++;
+            if (contadorDeTimeouts > 4) {
+                console.log(`Ocorreram mais de 4 Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
+                montarCsv();
+                contadorDeTimeouts = 0;
+            }
+        })
 }
 
 const pausarCaptura = () => {
@@ -149,19 +168,19 @@ const montarCsv = () => {
     dataCsv = []
 
     caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
-    
+
     valoresRms.forEach((element, index) => dataCsv.push({
         ValoresRms: element,
         Tempo: timeStamp(new Date(500 * index + tempoReferencia)),
         TimeStamp: (500 * index + tempoReferencia)
     }))
-    
-    try{
+
+    try {
         if (dataCsv.length) {
-            const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, {append:false});
+            const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, { append: false });
         }
     }
-    catch (e){
+    catch (e) {
         console.log(e)
     }
     valoresRms = [];
@@ -171,24 +190,24 @@ const montarCsv = () => {
 
 const timeStamp = (a) => {
     return a.getDate().toString().padStart(2, "0") + "/"
-    + (a.getMonth() + 1).toString().padStart(2, "0") + "/"
-    + a.getFullYear() + " " 
-    + a.getHours().toString().padStart(2, "0") + ":" 
-    + a.getMinutes().toString().padStart(2, "0") + ":" 
-    + a.getSeconds().toString().padStart(2, "0") + "." 
-    + a.getMilliseconds().toString().padStart(3, "0");
+        + (a.getMonth() + 1).toString().padStart(2, "0") + "/"
+        + a.getFullYear() + " "
+        + a.getHours().toString().padStart(2, "0") + ":"
+        + a.getMinutes().toString().padStart(2, "0") + ":"
+        + a.getSeconds().toString().padStart(2, "0") + "."
+        + a.getMilliseconds().toString().padStart(3, "0");
 }
 
 const fileTimeStamp = (a) => {
     return a.getDate().toString().padStart(2, "0") + "_"
-    + (a.getMonth() + 1).toString().padStart(2, "0") + "_"
-    + a.getFullYear() + "____"
-    + a.getHours().toString().padStart(2, "0")+ "_"
-    + a.getMinutes().toString().padStart(2, "0") + "_"
-    + a.getSeconds().toString().padStart(2, "0") + "_"
-    + a.getMilliseconds().toString().padStart(3, "0");
+        + (a.getMonth() + 1).toString().padStart(2, "0") + "_"
+        + a.getFullYear() + "____"
+        + a.getHours().toString().padStart(2, "0") + "_"
+        + a.getMinutes().toString().padStart(2, "0") + "_"
+        + a.getSeconds().toString().padStart(2, "0") + "_"
+        + a.getMilliseconds().toString().padStart(3, "0");
 }
 
-app.listen(PORT, function(){
-    console.log('running on ' + PORT)
+app.listen(PORT, function () {
+    console.log(`Servidor iniciado na porta: ${PORT} [DEBUG] ${timeStamp(new Date())}`);
 })
