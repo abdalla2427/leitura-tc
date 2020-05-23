@@ -3,17 +3,20 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const path = require('path');
 const ejs = require('ejs');
+const cors = require('cors')
+
 const ObjectsToCsv = require('objects-to-csv');
 
 
 const PORT = 80
-const caminhoArquivoDeLog = 'C:/Users/PICHAU/.pm2/logs/node-api-out.log';
+const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
 
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
 var apiPort = 80
-var nodeServerIp = 'localhost'
+//var nodeServerIp = 'localhost'
+var nodeServerIp = '162.214.93.72'
 var ipParaCaptura = 'http://a413511d.ngrok.io'
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
@@ -24,13 +27,14 @@ var caminhoUltimoCsvGerado
 var numeroDeZerosAnterior = 0;
 var contadorDeTimeouts = 0;
 
-
 const app = express()
 
 
 app.set('view-engine', 'ejs')
 
 app.use(bodyParser.json())
+app.use(cors())
+
 
 app.get('/', (req, res) => {
     res.render("index.ejs", {
