@@ -80,11 +80,13 @@ app.get('/montar_csv', (req, res) => {
 
 app.get('/alterarTempo', (req, res) => {
     tempoEntreCapturas = req.query.tempo * 1000;
+    res.send(`Tempo alterado para: ${req.query.tempo}ms`)
 })
 
 app.get('/alterarIp', (req, res) => {
     ipParaCaptura = `http://${req.query.ip}`
     ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data';
+    res.send(`IP alterado para: ${req.query.ip}`)
 })
 //#endregion
 
