@@ -13,7 +13,7 @@ const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
 
 var idIntervalo
 var capturando = false
-var tempoEntreCapturas = 5000
+var tempoEntreCapturas = 45000
 var apiPort = 80
 //var nodeServerIp = 'localhost'
 var nodeServerIp = '162.214.93.72'
@@ -39,7 +39,7 @@ app.use(cors())
 app.get('/', (req, res) => {
     res.render("index.ejs", {
         ipAtual: ipParaCaptura.replace('http://', ''),
-        tempoEntreCapturas: tempoEntreCapturas,
+        tempoEntreCapturas: tempoEntreCapturas / 1000,
         nodeServerIp: nodeServerIp,
         port: PORT
     });
@@ -80,7 +80,7 @@ app.get('/montar_csv', (req, res) => {
 
 app.get('/alterarTempo', (req, res) => {
     tempoEntreCapturas = req.query.tempo * 1000;
-    res.send(`Tempo alterado para: ${req.query.tempo}ms`)
+    res.send(`Tempo alterado para: ${req.query.tempo} s`)
 })
 
 app.get('/alterarIp', (req, res) => {
