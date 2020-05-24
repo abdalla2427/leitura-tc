@@ -152,7 +152,6 @@ const comecarCaptura = () => {
             numeroDeZerosAnterior = numeroDeZerosAtual;
         })
         .catch(function (error) {
-            console.log(error);
             contadorDeTimeouts++;
             if (contadorDeTimeouts > 4) {
                 console.log(`Ocorreram mais de 4 Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
