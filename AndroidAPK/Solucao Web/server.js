@@ -13,7 +13,7 @@ const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
 
 var idIntervalo
 var capturando = false
-var tempoEntreCapturas = 45000
+var tempoEntreCapturas = 5000
 //var nodeServerIp = 'localhost'
 var nodeServerIp = '162.214.93.72' //ip da maquina onde está rodando o servidor node 
 var apiPort = 80 //porta TCP que o ESP está rodando
@@ -97,7 +97,7 @@ app.get('/alterarIp', (req, res) => {
 
 
 const comecarCaptura = () => {
-    axios.get(ipApi)
+    axios.get(ipApi, { timeout: Math.floor(tempoEntreCapturas * 0.9) })
         .then((result) => {
             let resposta = result.data;
             let proximaPosicao;
@@ -158,6 +158,7 @@ const comecarCaptura = () => {
         })
         .catch(function (error) {
             contadorDeTimeouts++;
+            console.log(`Erro na requisição [ERROR] com código ${error.code}`)
             if (contadorDeTimeouts > numTimeouts) {
                 console.log(`Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
                 montarCsv();
