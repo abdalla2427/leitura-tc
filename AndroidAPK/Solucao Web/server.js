@@ -28,6 +28,7 @@ var numeroDeZerosAnterior = 0;
 var contadorDeTimeouts = 0;
 var k = 2; //coef de seguranca
 var numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
+var timeStampDaUltimaCaptura = null;
 //num timeouts = ((500ms * tamanho do buffer) / tempo de requisição) / k
 
 const app = express()
@@ -106,15 +107,15 @@ const comecarCaptura = () => {
             resposta = resposta.toString().split(" ");
 
             rmsAux = resposta[0].split(",");
+            //#region Comentarios
             // console.log('Antes do split', rmsAux.length, rmsAux[rmsAux.length -1]);
             // console.log('tamanho', rmsAux.length);
             // console.log('As que chegaram', rmsAux)
             // console.log('Posicao anterior', ultimoValorDoContador)
-
+            //#endregion
+            timeStampDaUltimaCaptura = Date.now();
             proximaPosicao = Number(resposta[1]);
             tamanhoVetorRmsQueChegou = rmsAux.length;
-
-            // console.log('Proxima posicao', proximaPosicao)
 
             let numeroDeZerosAtual = rmsAux.filter(x => x === "0.000").length;
 
@@ -147,7 +148,7 @@ const comecarCaptura = () => {
 
                 rmsAux.forEach((amostra, index) => {
                     if (amostra != 0) {
-                        valoresRms.push(amostra);// console.log('amostras que entram', amostra)
+                        valoresRms.push(amostra);
                     }
                 })
 
@@ -166,7 +167,6 @@ const comecarCaptura = () => {
 }
 
 const pausarCaptura = () => {
-    // console.log(valoresRms)
     clearInterval(idIntervalo)
     capturando = false;
 }
@@ -181,6 +181,8 @@ const montarCsv = () => {
         Tempo: timeStamp(new Date(500 * index + tempoReferencia)),
         TimeStamp: (500 * index + tempoReferencia)
     }))
+
+    console.log(`A útlima amostra lida foi em [DEBUG] ${timeStamp(timeStampDaUltimaCaptura)} ou em EPOCH ${timeStampDaUltimaCaptura}`);
 
     try {
         if (dataCsv.length) {
