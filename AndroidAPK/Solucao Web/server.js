@@ -14,10 +14,10 @@ const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 45000
-var apiPort = 80
 //var nodeServerIp = 'localhost'
-var nodeServerIp = '162.214.93.72'
-var ipParaCaptura = 'http://a413511d.ngrok.io'
+var nodeServerIp = '162.214.93.72' //ip da maquina onde está rodando o servidor node 
+var apiPort = 80 //porta TCP que o ESP está rodando
+var ipParaCaptura = 'http://a413511d.ngrok.io' // ip do ESP
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
 var valoresRms = []
@@ -26,6 +26,9 @@ var tempoReferencia
 var caminhoUltimoCsvGerado
 var numeroDeZerosAnterior = 0;
 var contadorDeTimeouts = 0;
+var k = 2; //coef de seguranca
+var numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
+//num timeouts = ((500ms * tamanho do buffer) / tempo de requisição) / k
 
 const app = express()
 
@@ -80,6 +83,7 @@ app.get('/montar_csv', (req, res) => {
 
 app.get('/alterarTempo', (req, res) => {
     tempoEntreCapturas = req.query.tempo * 1000;
+    numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
     res.send(`Tempo alterado para: ${req.query.tempo} s`)
 })
 
@@ -112,9 +116,9 @@ const comecarCaptura = () => {
 
             // console.log('Proxima posicao', proximaPosicao)
 
-            let numeroDeZerosAtual = rmsAux.filter(x => x == 0).length;
+            let numeroDeZerosAtual = rmsAux.filter(x => x === "0.000").length;
 
-            if (numeroDeZerosAtual > numeroDeZerosAnterior && valoresRms.length) {
+            if ((numeroDeZerosAtual > numeroDeZerosAnterior) && (valoresRms.length > 0)) {
                 console.log(`O ESP3 Reiniciou [DEBUG] ${timeStamp(new Date())}`);
                 montarCsv();
             }
@@ -123,7 +127,6 @@ const comecarCaptura = () => {
                 rmsAux.forEach((amostra, index) => {
                     if (amostra != 0) {
                         valoresRms.push(amostra);
-                        // console.log('primeiras amostras que entram', amostra)
                     }
                 })
                 if (valoresRms.length) {
@@ -144,8 +147,7 @@ const comecarCaptura = () => {
 
                 rmsAux.forEach((amostra, index) => {
                     if (amostra != 0) {
-                        valoresRms.push(amostra);
-                        // console.log('amostras que entram', amostra)
+                        valoresRms.push(amostra);// console.log('amostras que entram', amostra)
                     }
                 })
 
@@ -155,8 +157,8 @@ const comecarCaptura = () => {
         })
         .catch(function (error) {
             contadorDeTimeouts++;
-            if (contadorDeTimeouts > 4) {
-                console.log(`Ocorreram mais de 4 Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
+            if (contadorDeTimeouts > numTimeouts) {
+                console.log(`Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
                 montarCsv();
                 contadorDeTimeouts = 0;
             }
