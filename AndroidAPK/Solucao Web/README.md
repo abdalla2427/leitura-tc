@@ -21,6 +21,8 @@
 
 
 ### 2.2. Clonando o Repositório da API
+* Utilizaremos um repositório no  _Github_ para manter as atualizações da aplicação.
+
 > https://github.com/abdalla2427/leitura-tc/tree/master/AndroidAPK/Solucao%20Web
 
 * O código para consultar o microcontrolador encontra-se aqui, junto com o arquivo das dependências necessárias para o funcionamento da API. 
@@ -41,7 +43,7 @@
 
 ## 4. Acessando o serviço
 
-Após rodar o comando anterior, um aviso na janela de comando aparecerá, informando que o serviço está rodando na porta 5000 por padrão. Acessando o endereço a seguir por meio de um browser, terá acesso ao painel para fazer a captura dos valores lidos pelo microcontrolador.
+* Após rodar o comando anterior, um aviso na janela de comando aparecerá, informando que o serviço está rodando na porta 5000 por padrão. Acessando o endereço a seguir por meio de um browser, terá acesso ao painel para fazer a captura dos valores lidos pelo microcontrolador.
 > http://localhost:5000
 
 ## 5. Funções do serviço
