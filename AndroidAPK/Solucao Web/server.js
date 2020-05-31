@@ -13,11 +13,11 @@ const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
 
 var idIntervalo
 var capturando = false
-var tempoEntreCapturas = 5000
+var tempoEntreCapturas = 15000
 //var nodeServerIp = 'localhost'
 var nodeServerIp = '162.214.93.72' //ip da maquina onde está rodando o servidor node 
 var apiPort = 80 //porta TCP que o ESP está rodando
-var ipParaCaptura = 'http://a413511d.ngrok.io' // ip do ESP
+var ipParaCaptura = 'http://3e97a7e1d77e.ngrok.io' // ip do ESP
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
 var valoresRms = []
@@ -28,7 +28,7 @@ var numeroDeZerosAnterior = 0;
 var contadorDeTimeouts = 0;
 var k = 2; //coef de seguranca
 var numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
-var timeStampDaUltimaCaptura = null;
+var timeStampDaUltimaCaptura = Date.now();
 //num timeouts = ((500ms * tamanho do buffer) / tempo de requisição) / k
 
 const app = express()
@@ -97,7 +97,7 @@ app.get('/alterarIp', (req, res) => {
 
 
 const comecarCaptura = () => {
-    axios.get(ipApi, { timeout: Math.floor(tempoEntreCapturas * 0.9) })
+    axios.get(ipApi, { timeout: Math.floor(tempoEntreCapturas * 0.7) })
         .then((result) => {
             let resposta = result.data;
             let proximaPosicao;
@@ -114,6 +114,7 @@ const comecarCaptura = () => {
             // console.log('Posicao anterior', ultimoValorDoContador)
             //#endregion
             timeStampDaUltimaCaptura = Date.now();
+
             proximaPosicao = Number(resposta[1]);
             tamanhoVetorRmsQueChegou = rmsAux.length;
 
@@ -131,7 +132,7 @@ const comecarCaptura = () => {
                     }
                 })
                 if (valoresRms.length) {
-                    tempoReferencia = Date.now() - 500 * valoresRms.length;
+                    tempoReferencia = Date.now() - 500 * (valoresRms.length - 1);
                 }
             }
             else {
@@ -158,11 +159,11 @@ const comecarCaptura = () => {
         })
         .catch(function (error) {
             contadorDeTimeouts++;
-            console.log(`Erro na requisição [ERROR] com código ${error.code}`)
+            console.log(`Erro na requisição [ERROR] com código ${error.code} em ${timeStamp(new Date())}`)
             if (contadorDeTimeouts > numTimeouts) {
+                contadorDeTimeouts = 0;
                 console.log(`Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
                 montarCsv();
-                contadorDeTimeouts = 0;
             }
         })
 }
@@ -183,7 +184,7 @@ const montarCsv = () => {
         TimeStamp: (500 * index + tempoReferencia)
     }))
 
-    console.log(`A útlima amostra lida foi em [DEBUG] ${timeStamp(timeStampDaUltimaCaptura)} ou em EPOCH ${timeStampDaUltimaCaptura}`);
+    console.log(`A útlima amostra lida foi em [DEBUG] ${timeStamp(new Date(timeStampDaUltimaCaptura))} ou em EPOCH ${timeStampDaUltimaCaptura}`);
 
     try {
         if (dataCsv.length) {
