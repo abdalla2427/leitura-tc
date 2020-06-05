@@ -4,25 +4,32 @@ const axios = require('axios');
 const path = require('path');
 const ejs = require('ejs');
 const cors = require('cors')
+const fs = require('fs');
+
 
 const ObjectsToCsv = require('objects-to-csv');
 
 
 const PORT = 80
 const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
+const caminhoArquivoProxPosicaoLog = __dirname + '/prox-posicao.log';
 
+
+var proxPosicaoLog = fs.createWriteStream(caminhoArquivoProxPosicaoLog, {flags: 'a'})
+proxPosicaoLog.write(`\n`)
 var idIntervalo
 var capturando = false
-var tempoEntreCapturas = 15000
+var tempoEntreCapturas = 5000
 //var nodeServerIp = 'localhost'
-var nodeServerIp = '162.214.93.72' //ip da maquina onde está rodando o servidor node 
+var pathBase = '/leitura-tc'
+var nodeServerIp = 'abdalla2427.com' + pathBase//ip da maquina onde está rodando o servidor node 
 var apiPort = 80 //porta TCP que o ESP está rodando
 var ipParaCaptura = 'http://3e97a7e1d77e.ngrok.io' // ip do ESP
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
 var valoresRms = []
 var dataCsv = []
-var tempoReferencia
+var tempoReferencia = 0
 var caminhoUltimoCsvGerado
 var numeroDeZerosAnterior = 0;
 var contadorDeTimeouts = 0;
@@ -33,14 +40,14 @@ var timeStampDaUltimaCaptura = Date.now();
 
 const app = express()
 
-
 app.set('view-engine', 'ejs')
 
 app.use(bodyParser.json())
 app.use(cors())
 
+// app.use(pathBase + '/arquivos', express.static(__dirname + '/rms'));
 
-app.get('/', (req, res) => {
+app.get(pathBase + '/', (req, res) => {
     res.render("index.ejs", {
         ipAtual: ipParaCaptura.replace('http://', ''),
         tempoEntreCapturas: tempoEntreCapturas / 1000,
@@ -49,12 +56,12 @@ app.get('/', (req, res) => {
     });
 })
 
-app.get('/log', (req, res) => {
+app.get(pathBase + '/log', (req, res) => {
     res.sendFile(caminhoArquivoDeLog);
 })
 
 //#region endpoints
-app.get('/comecar_captura', (req, res) => {
+app.get(pathBase + '/comecar_captura', (req, res) => {
     if (!capturando) {
         idIntervalo = setInterval(() => {
             comecarCaptura()
@@ -64,37 +71,49 @@ app.get('/comecar_captura', (req, res) => {
     res.send('capturando')
 })
 
-app.get('/pausar_captura', (req, res) => {
+app.get(pathBase + '/pausar_captura', (req, res) => {
     if (capturando) {
         pausarCaptura()
     }
     res.send('parou')
 })
 
-app.get('/valores_capturados', (req, res) => {
+app.get(pathBase + '/valores_capturados', (req, res) => {
     res.send(valoresRms)
 })
 
-app.get('/montar_csv', (req, res) => {
+app.get(pathBase + '/montar_csv', (req, res) => {
     pausarCaptura()
     console.log(`O usuario Pediu para montar o csv [DEBUG] ${timeStamp(new Date())}`);
     montarCsv();
     res.send(dataCsv)
 })
 
-app.get('/alterarTempo', (req, res) => {
+app.get(pathBase + '/alterarTempo', (req, res) => {
     tempoEntreCapturas = req.query.tempo * 1000;
     numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
     res.send(`Tempo alterado para: ${req.query.tempo} s`)
 })
 
-app.get('/alterarIp', (req, res) => {
+app.get(pathBase + '/alterarIp', (req, res) => {
     ipParaCaptura = `http://${req.query.ip}`
     ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data';
     res.send(`IP alterado para: ${req.query.ip}`)
 })
+
+app.get(pathBase + '/proxPosicaoLog', (req, res) => {
+    res.sendFile(caminhoArquivoProxPosicaoLog);
+})
 //#endregion
 
+const listarArquivos = () => {
+    var arquivosNoDiretorio = []
+    var read = fs.readdirSync(__dirname + '/rms')
+    read.forEach(file => {
+        arquivosNoDiretorio.push(file)
+    })
+    return arquivosNoDiretorio
+}
 
 const comecarCaptura = () => {
     axios.get(ipApi, { timeout: Math.floor(tempoEntreCapturas * 0.7) })
@@ -118,10 +137,12 @@ const comecarCaptura = () => {
             proximaPosicao = Number(resposta[1]);
             tamanhoVetorRmsQueChegou = rmsAux.length;
 
+            proxPosicaoLog.write(proximaPosicao.toString() + ',')
+
             let numeroDeZerosAtual = rmsAux.filter(x => x === "0.000").length;
 
             if ((numeroDeZerosAtual > numeroDeZerosAnterior) && (valoresRms.length > 0)) {
-                console.log(`O ESP3 Reiniciou [DEBUG] ${timeStamp(new Date())}`);
+                console.log(`${timeStamp(new Date())} [DEBUG] O ESP3 Reiniciou`);
                 montarCsv();
             }
 
@@ -159,10 +180,9 @@ const comecarCaptura = () => {
         })
         .catch(function (error) {
             contadorDeTimeouts++;
-            console.log(`Erro na requisição [ERROR] com código ${error.code} em ${timeStamp(new Date())}`)
             if (contadorDeTimeouts > numTimeouts) {
                 contadorDeTimeouts = 0;
-                console.log(`Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32 [DEBUG] ${timeStamp(new Date())}`);
+                console.log(`${timeStamp(new Date())} [ERROR] Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32`);
                 montarCsv();
             }
         })
@@ -174,29 +194,38 @@ const pausarCaptura = () => {
 }
 
 const montarCsv = () => {
-    dataCsv = []
+    if (valoresRms.length) {
+        dataCsv = []
+    
+        caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
 
-    caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
-
-    valoresRms.forEach((element, index) => dataCsv.push({
-        ValoresRms: element,
-        Tempo: timeStamp(new Date(500 * index + tempoReferencia)),
-        TimeStamp: (500 * index + tempoReferencia)
-    }))
-
-    console.log(`A útlima amostra lida foi em [DEBUG] ${timeStamp(new Date(timeStampDaUltimaCaptura))} ou em EPOCH ${timeStampDaUltimaCaptura}`);
-
-    try {
-        if (dataCsv.length) {
-            const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, { append: false });
+        var tempoMediOEntreAmostras = calcularTempoMedioEntreAmostras()
+    
+        valoresRms.forEach((element, index) => dataCsv.push({
+            ValoresRms: element,
+            Tempo: timeStamp(new Date(tempoMediOEntreAmostras * index + tempoReferencia)),
+            TimeStamp: (500 * index + tempoReferencia)
+        }))
+    
+        console.log(`${timeStamp(new Date(timeStampDaUltimaCaptura))} [DEBUG] Foi o timestamp da ultima amostra. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
+    
+        try {
+            if (dataCsv.length) {
+                const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, { append: false });
+                proxPosicaoLog.write(timeStamp(new Date(timeStampDaUltimaCaptura)) + `\n`)
+            }
         }
+        catch (e) {
+            console.log(e)
+        }
+        valoresRms = [];
+        ultimoValorDoContador = 0;
+        numeroDeZerosAnterior = 0;
     }
-    catch (e) {
-        console.log(e)
-    }
-    valoresRms = [];
-    ultimoValorDoContador = 0;
-    numeroDeZerosAnterior = 0;
+}
+
+const calcularTempoMedioEntreAmostras = () => {
+    return ((tempoReferencia - timeStampDaUltimaCaptura) / (valoresRms.length - 1))
 }
 
 const timeStamp = (a) => {
@@ -220,5 +249,5 @@ const fileTimeStamp = (a) => {
 }
 
 app.listen(PORT, function () {
-    console.log(`Servidor iniciado na porta: ${PORT} [DEBUG] ${timeStamp(new Date())}`);
+    console.log(`${timeStamp(new Date())} [DEBUG] Servidor iniciado na porta: ${PORT}`);
 })

@@ -18,7 +18,7 @@
                     console.log(xhr.response)
                 }
             }
-            xhr.open('get', `http://${ip}:${port}/` + value, true);
+            xhr.open('get', `http://${ip}/` + value, true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
             xhr.send();
         }
@@ -38,7 +38,7 @@
                     downloadCSV(Date.now().toString() + '.csv')
                 }
             }
-            xhr.open('get', `http://${ip}:${port}/montar_csv`, true);
+            xhr.open('get', 'http://' + ip + '/montar_csv', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
             xhr.send();
         }
@@ -140,7 +140,7 @@
                         //carregarGrafico(a);
                     }
                 }
-                xhr.open('get', `http://${ip}:${port}/` + 'valores_capturados', true);
+                xhr.open('get', `http://${ip}/` + 'valores_capturados', true);
                 xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
                 xhr.send();
             }
@@ -152,7 +152,10 @@
             })
 
             document.getElementById('acessarLog').addEventListener("click", function() {
-                window.open(`http://${ip}:${port}/log`, "_blank"); 
+                window.open(`http://${ip}/log`, "_blank"); 
+            })
+            document.getElementById('proxPosicaoLog').addEventListener("click", function() {
+                window.open(`http://${ip}/proxPosicaoLog`, "_blank"); 
             })
         }
 
@@ -171,7 +174,7 @@
 <body>
     <div class="container" style="width: 100% ;display: flex; flex-direction: column; justify-content: center; align-content: center ;padding: 20px;">
         <div class="acoes" style="display: flex; flex-direction: column;" >
-            <h1>Ações</h1>
+            <h1>Açaaões</h1>
             <div id="configuracaoLeitura" style="margin-top: 10px;">
                 <div>
                     <input id="alterarIp" value="<%= ipAtual %>" type="text" />
@@ -201,6 +204,9 @@
                 <div class="logss">
                     <button id="acessarLog">
                         Acessar log da aplicação
+                    </button>
+                    <button id="proxPosicaoLog">
+                        Log próxima posição
                     </button>
                 </div>
             </div>
