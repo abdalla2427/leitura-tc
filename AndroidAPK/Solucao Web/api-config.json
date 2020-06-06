@@ -1,0 +1,12 @@
+{
+    "idIntervalo": null,
+    "capturando": false,
+    "tempoEntreCapturas": 5000,
+    "pathBase": "/leitura-tc",
+    "nodeServerIp": "localhost",
+    "apiPort": "80",
+    "ipParaCaptura": "http://aa4071b4ddbb.ngrok.io",
+    "endPointCaptura": "i_rms_data",
+    "caminhoArquivoDeLog": "web-api-out.log",
+    "PORT": 5000
+}

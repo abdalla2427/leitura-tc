@@ -8,18 +8,38 @@ const fs = require('fs');
 const ObjectsToCsv = require('objects-to-csv');
 
 
-const PORT = 80
-const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
+const apiConfig =  JSON.parse(fs.readFileSync("api-config.json"))
 
 
-var idIntervalo
-var capturando = false
-var tempoEntreCapturas = 5000
-var pathBase = '/leitura-tc'
-var nodeServerIp = 'abdalla2427.com' + pathBase//ip da maquina onde está rodando o servidor node 
-var apiPort = 80 //porta TCP que o ESP está rodando
-var ipParaCaptura = 'http://aa4071b4ddbb.ngrok.io' // ip do ESP
-var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
+class Logger {
+    erro(mensagem) {
+        let mensagemDeLog = `${timeStamp(new Date())} [ERROR] ${mensagem}`
+        console.log(mensagemDeLog);
+        fs.appendFileSync(apiConfig.caminhoArquivoDeLog, `${mensagemDeLog}\n`);
+    }
+    debug(mensagem) {
+        let mensagemDeLog = `${timeStamp(new Date())} [DEBUG] ${mensagem}`
+        console.log(mensagemDeLog);
+        fs.appendFileSync(apiConfig.caminhoArquivoDeLog, `${mensagemDeLog}\n`);
+    }
+}
+
+//#region Setup das variaveis
+var caminhoArquivoDeLog = apiConfig.caminhoArquivoDeLog
+var PORT = apiConfig.PORT
+var idIntervalo = apiConfig.idIntervalo
+var capturando = apiConfig.capturando
+var tempoEntreCapturas = apiConfig.tempoEntreCapturas
+var pathBase = apiConfig.pathBase
+var nodeServerIp = apiConfig.nodeServerIp
+var apiPort = apiConfig.apiPort
+var ipParaCaptura = apiConfig.ipParaCaptura
+var endPointCaptura = apiConfig.endPointCaptura
+var ipApi = `${ipParaCaptura}:${apiPort}/${endPointCaptura}`
+var logger = new Logger()
+//#endregion
+
+//#region parêmetros dinâmicos
 var ultimoValorDoContador = 0
 var valoresRms = []
 var dataCsv = []
@@ -30,19 +50,18 @@ var contadorDeTimeouts = 0;
 var k = 2; //coef de seguranca
 var numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
 var timeStampDaUltimaCaptura = Date.now();
-//num timeouts = ((500ms * tamanho do buffer) / tempo de requisição) / k
+//#endregion
 
 const app = express()
-
 app.set('view-engine', 'ejs')
 app.use(bodyParser.json())
 app.use(cors())
-
 
 //#region endpoints
 app.get(pathBase + '/', (req, res) => {
     res.render("index.ejs", {
         ipAtual: ipParaCaptura.replace('http://', ''),
+        pathBase: pathBase,
         tempoEntreCapturas: tempoEntreCapturas / 1000,
         nodeServerIp: nodeServerIp,
         port: PORT
@@ -50,7 +69,7 @@ app.get(pathBase + '/', (req, res) => {
 })
 
 app.get(pathBase + '/log', (req, res) => {
-    res.sendFile(caminhoArquivoDeLog);
+    res.sendFile(__dirname + '/' + caminhoArquivoDeLog);
 })
 
 app.get(pathBase + '/comecar_captura', (req, res) => {
@@ -64,9 +83,7 @@ app.get(pathBase + '/comecar_captura', (req, res) => {
 })
 
 app.get(pathBase + '/pausar_captura', (req, res) => {
-    if (capturando) {
-        pausarCaptura()
-    }
+    if (capturando) pausarCaptura()
     res.send('parou')
 })
 
@@ -75,8 +92,8 @@ app.get(pathBase + '/valores_capturados', (req, res) => {
 })
 
 app.get(pathBase + '/montar_csv', (req, res) => {
+    logger.debug("O usuario Pediu para montar o csv")
     pausarCaptura()
-    console.log(`${timeStamp(new Date())} [DEBUG] O usuario Pediu para montar o csv`);
     montarCsv();
     res.send(dataCsv)
 })
@@ -94,14 +111,6 @@ app.get(pathBase + '/alterarIp', (req, res) => {
 })
 //#endregion
 
-const listarArquivos = () => {
-    var arquivosNoDiretorio = []
-    var read = fs.readdirSync(__dirname + '/rms')
-    read.forEach(file => {
-        arquivosNoDiretorio.push(file)
-    })
-    return arquivosNoDiretorio
-}
 
 const comecarCaptura = () => {
     axios.get(ipApi, { timeout: Math.floor(tempoEntreCapturas * 0.7) })
@@ -114,12 +123,7 @@ const comecarCaptura = () => {
             resposta = resposta.toString().split(" ");
 
             rmsAux = resposta[0].split(",");
-            //#region Comentarios
-            // console.log('Antes do split', rmsAux.length, rmsAux[rmsAux.length -1]);
-            // console.log('tamanho', rmsAux.length);
-            // console.log('As que chegaram', rmsAux)
-            // console.log('Posicao anterior', ultimoValorDoContador)
-            //#endregion
+
             timeStampDaUltimaCaptura = Date.now();
 
             proximaPosicao = Number(resposta[1]);
@@ -128,7 +132,7 @@ const comecarCaptura = () => {
             let numeroDeZerosAtual = rmsAux.filter(x => x === "0.000").length;
 
             if ((numeroDeZerosAtual > numeroDeZerosAnterior) && (valoresRms.length > 0)) {
-                console.log(`${timeStamp(new Date())} [DEBUG] O ESP3 Reiniciou`);
+                logger.debug("O ESP3 Reiniciou")
                 montarCsv();
             }
 
@@ -168,7 +172,7 @@ const comecarCaptura = () => {
             contadorDeTimeouts++;
             if (contadorDeTimeouts > numTimeouts) {
                 contadorDeTimeouts = 0;
-                console.log(`${timeStamp(new Date())} [ERROR] Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32`);
+                logger.erro(`[ERROR] Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32`)
                 montarCsv();
             }
         })
@@ -193,7 +197,7 @@ const montarCsv = () => {
             TimeStamp: (tempoMediOEntreAmostras * index + tempoReferencia)
         }))
 
-        console.log(`${timeStamp(new Date(timeStampDaUltimaCaptura))} [DEBUG] Foi o timestamp da ultima amostra. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
+        logger.debug(`Foi o timestamp da ultima amostra. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
 
         try {
             if (dataCsv.length) {
@@ -201,7 +205,7 @@ const montarCsv = () => {
             }
         }
         catch (e) {
-            console.log(e)
+            logger.erro(`Erro ao escrever no csv`)
         }
         valoresRms = [];
         ultimoValorDoContador = 0;
@@ -234,5 +238,5 @@ const fileTimeStamp = (a) => {
 }
 
 app.listen(PORT, function () {
-    console.log(`${timeStamp(new Date())} [DEBUG] Servidor iniciado na porta: ${PORT}`);
+    logger.debug(`Servidor iniciado na porta: ${PORT}`)
 })
