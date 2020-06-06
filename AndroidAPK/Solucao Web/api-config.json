@@ -1,6 +1,4 @@
 {
-    "idIntervalo": null,
-    "capturando": false,
     "tempoEntreCapturas": 5000,
     "pathBase": "/leitura-tc",
     "nodeServerIp": "localhost",

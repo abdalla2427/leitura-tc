@@ -27,8 +27,6 @@ class Logger {
 //#region Setup das variaveis
 var caminhoArquivoDeLog = apiConfig.caminhoArquivoDeLog
 var PORT = apiConfig.PORT
-var idIntervalo = apiConfig.idIntervalo
-var capturando = apiConfig.capturando
 var tempoEntreCapturas = apiConfig.tempoEntreCapturas
 var pathBase = apiConfig.pathBase
 var nodeServerIp = apiConfig.nodeServerIp
@@ -40,6 +38,8 @@ var logger = new Logger()
 //#endregion
 
 //#region parêmetros dinâmicos
+var idIntervalo = null
+var capturando = false
 var ultimoValorDoContador = 0
 var valoresRms = []
 var dataCsv = []
