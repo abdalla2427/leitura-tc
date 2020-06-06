@@ -5,26 +5,20 @@ const path = require('path');
 const ejs = require('ejs');
 const cors = require('cors')
 const fs = require('fs');
-
-
 const ObjectsToCsv = require('objects-to-csv');
 
 
 const PORT = 80
 const caminhoArquivoDeLog = '/root/.pm2/logs/web-api-out.log';
-const caminhoArquivoProxPosicaoLog = __dirname + '/prox-posicao.log';
 
 
-var proxPosicaoLog = fs.createWriteStream(caminhoArquivoProxPosicaoLog, {flags: 'a'})
-proxPosicaoLog.write(`\n`)
 var idIntervalo
 var capturando = false
 var tempoEntreCapturas = 5000
-//var nodeServerIp = 'localhost'
 var pathBase = '/leitura-tc'
 var nodeServerIp = 'abdalla2427.com' + pathBase//ip da maquina onde está rodando o servidor node 
 var apiPort = 80 //porta TCP que o ESP está rodando
-var ipParaCaptura = 'http://3e97a7e1d77e.ngrok.io' // ip do ESP
+var ipParaCaptura = 'http://aa4071b4ddbb.ngrok.io' // ip do ESP
 var ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data'
 var ultimoValorDoContador = 0
 var valoresRms = []
@@ -41,12 +35,11 @@ var timeStampDaUltimaCaptura = Date.now();
 const app = express()
 
 app.set('view-engine', 'ejs')
-
 app.use(bodyParser.json())
 app.use(cors())
 
-// app.use(pathBase + '/arquivos', express.static(__dirname + '/rms'));
 
+//#region endpoints
 app.get(pathBase + '/', (req, res) => {
     res.render("index.ejs", {
         ipAtual: ipParaCaptura.replace('http://', ''),
@@ -60,7 +53,6 @@ app.get(pathBase + '/log', (req, res) => {
     res.sendFile(caminhoArquivoDeLog);
 })
 
-//#region endpoints
 app.get(pathBase + '/comecar_captura', (req, res) => {
     if (!capturando) {
         idIntervalo = setInterval(() => {
@@ -84,7 +76,7 @@ app.get(pathBase + '/valores_capturados', (req, res) => {
 
 app.get(pathBase + '/montar_csv', (req, res) => {
     pausarCaptura()
-    console.log(`O usuario Pediu para montar o csv [DEBUG] ${timeStamp(new Date())}`);
+    console.log(`${timeStamp(new Date())} [DEBUG] O usuario Pediu para montar o csv`);
     montarCsv();
     res.send(dataCsv)
 })
@@ -99,10 +91,6 @@ app.get(pathBase + '/alterarIp', (req, res) => {
     ipParaCaptura = `http://${req.query.ip}`
     ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data';
     res.send(`IP alterado para: ${req.query.ip}`)
-})
-
-app.get(pathBase + '/proxPosicaoLog', (req, res) => {
-    res.sendFile(caminhoArquivoProxPosicaoLog);
 })
 //#endregion
 
@@ -136,8 +124,6 @@ const comecarCaptura = () => {
 
             proximaPosicao = Number(resposta[1]);
             tamanhoVetorRmsQueChegou = rmsAux.length;
-
-            proxPosicaoLog.write(proximaPosicao.toString() + ',')
 
             let numeroDeZerosAtual = rmsAux.filter(x => x === "0.000").length;
 
@@ -196,23 +182,22 @@ const pausarCaptura = () => {
 const montarCsv = () => {
     if (valoresRms.length) {
         dataCsv = []
-    
+
         caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
 
         var tempoMediOEntreAmostras = calcularTempoMedioEntreAmostras()
-    
+
         valoresRms.forEach((element, index) => dataCsv.push({
             ValoresRms: element,
             Tempo: timeStamp(new Date(tempoMediOEntreAmostras * index + tempoReferencia)),
-            TimeStamp: (500 * index + tempoReferencia)
+            TimeStamp: (tempoMediOEntreAmostras * index + tempoReferencia)
         }))
-    
+
         console.log(`${timeStamp(new Date(timeStampDaUltimaCaptura))} [DEBUG] Foi o timestamp da ultima amostra. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
-    
+
         try {
             if (dataCsv.length) {
                 const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, { append: false });
-                proxPosicaoLog.write(timeStamp(new Date(timeStampDaUltimaCaptura)) + `\n`)
             }
         }
         catch (e) {
@@ -225,7 +210,7 @@ const montarCsv = () => {
 }
 
 const calcularTempoMedioEntreAmostras = () => {
-    return ((tempoReferencia - timeStampDaUltimaCaptura) / (valoresRms.length - 1))
+    return Math.floor(((timeStampDaUltimaCaptura - tempoReferencia) / (valoresRms.length - 1)))
 }
 
 const timeStamp = (a) => {
