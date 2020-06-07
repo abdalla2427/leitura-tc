@@ -1,3 +1,4 @@
+//#region Importação das dependências e arquivo de configuração
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -6,11 +7,10 @@ const ejs = require('ejs');
 const cors = require('cors')
 const fs = require('fs');
 const ObjectsToCsv = require('objects-to-csv');
-
-
 const apiConfig =  JSON.parse(fs.readFileSync("api-config.json"))
+//#endregion
 
-
+//#region Classe para Log da Aplicação
 class Logger {
     erro(mensagem) {
         let mensagemDeLog = `${timeStamp(new Date())} [ERROR] ${mensagem}`
@@ -23,6 +23,7 @@ class Logger {
         fs.appendFileSync(apiConfig.caminhoArquivoDeLog, `${mensagemDeLog}\n`);
     }
 }
+//#endregion
 
 //#region Setup das variaveis
 var caminhoArquivoDeLog = apiConfig.caminhoArquivoDeLog
@@ -37,7 +38,7 @@ var ipApi = `${ipParaCaptura}:${apiPort}/${endPointCaptura}`
 var logger = new Logger()
 //#endregion
 
-//#region parêmetros dinâmicos
+//#region Parêmetros dinâmicos
 var idIntervalo = null
 var capturando = false
 var ultimoValorDoContador = 0
@@ -52,12 +53,14 @@ var numTimeouts = Math.ceil(((500 * 256) / (tempoEntreCapturas * k)));
 var timeStampDaUltimaCaptura = Date.now();
 //#endregion
 
+//#region Definição de parâmetros da engine do Servidor
 const app = express()
 app.set('view-engine', 'ejs')
 app.use(bodyParser.json())
 app.use(cors())
+//#endregion
 
-//#region endpoints
+//#region Endpoints
 app.get(pathBase + '/', (req, res) => {
     res.render("index.ejs", {
         ipAtual: ipParaCaptura.replace('http://', ''),
@@ -111,7 +114,7 @@ app.get(pathBase + '/alterarIp', (req, res) => {
 })
 //#endregion
 
-
+//#region Funções para captura e salvamento do arquivo
 const comecarCaptura = () => {
     axios.get(ipApi, { timeout: Math.floor(tempoEntreCapturas * 0.7) })
         .then((result) => {
@@ -187,7 +190,7 @@ const montarCsv = () => {
     if (valoresRms.length) {
         dataCsv = []
 
-        caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date()) + '.csv'
+        caminhoUltimoCsvGerado = './rms/rms' + fileTimeStamp(new Date(timeStampDaUltimaCaptura)) + '.csv'
 
         var tempoMediOEntreAmostras = calcularTempoMedioEntreAmostras()
 
@@ -197,7 +200,7 @@ const montarCsv = () => {
             TimeStamp: (tempoMediOEntreAmostras * index + tempoReferencia)
         }))
 
-        logger.debug(`Foi o timestamp da ultima amostra. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
+        logger.debug(`O timestamp da última amostra foi: ${timeStamp(new Date(timeStampDaUltimaCaptura))}. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
 
         try {
             if (dataCsv.length) {
@@ -236,7 +239,10 @@ const fileTimeStamp = (a) => {
         + a.getSeconds().toString().padStart(2, "0") + "_"
         + a.getMilliseconds().toString().padStart(3, "0");
 }
+//#endregion
 
+//#region Inicialização do servidor
 app.listen(PORT, function () {
     logger.debug(`Servidor iniciado na porta: ${PORT}`)
 })
+//#endregion
