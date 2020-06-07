@@ -196,8 +196,8 @@ const montarCsv = () => {
 
         valoresRms.forEach((element, index) => dataCsv.push({
             ValoresRms: element,
-            Tempo: timeStamp(new Date(tempoMediOEntreAmostras * index + tempoReferencia)),
-            TimeStamp: (tempoMediOEntreAmostras * index + tempoReferencia)
+            Tempo: timeStamp(new Date(Math.trunc(tempoMediOEntreAmostras * index + tempoReferencia))),
+            TimeStamp: Math.trunc((tempoMediOEntreAmostras * index + tempoReferencia))
         }))
 
         logger.debug(`O timestamp da última amostra foi: ${timeStamp(new Date(timeStampDaUltimaCaptura))}. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
@@ -217,7 +217,7 @@ const montarCsv = () => {
 }
 
 const calcularTempoMedioEntreAmostras = () => {
-    return Math.floor(((timeStampDaUltimaCaptura - tempoReferencia) / (valoresRms.length - 1)))
+    return ((timeStampDaUltimaCaptura - tempoReferencia) / (valoresRms.length - 1))
 }
 
 const timeStamp = (a) => {
