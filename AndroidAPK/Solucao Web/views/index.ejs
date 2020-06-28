@@ -44,6 +44,19 @@
             xhr.send();
         }
 
+        function listarArquivosRms() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    console.log(xhr.response);
+                    montarListaRms(JSON.parse(xhr.response))
+                }
+            }
+            xhr.open('get', `http://${ip}:${port}${pathBase}/arquivos_rms`, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+            xhr.send();
+        }
+
         function convertArrayOfObjectsToCSV(args) {
             var result, ctr, keys, columnDelimiter, lineDelimiter, data;
 
@@ -94,6 +107,7 @@
             link.setAttribute('href', data);
             link.setAttribute('download', filename);
             link.click();
+            montarListaRms();
         }
 
         function alterarTempoEntreCapturas() {
@@ -105,6 +119,17 @@
             else {
                 alert('Input invalido para tempo.\nUtilize um número válido')
             }
+        }
+
+        function montarListaRms(listaValores) {
+            let listaHTML = document.getElementById('listaLinks')
+            listaHTML.innerHTML = ''
+            listaValores.forEach(valor => {
+                console.log(valor, `aaa`)
+                let novoFilho = document.createElement("li");
+                novoFilho.innerHTML = `<a href="http://${ip}:${port}${pathBase}/rms/${valor}" target="_blank" style="color: blue;">${valor}</a>`
+                listaHTML.appendChild(novoFilho)
+            })
         }
     </script>
 
@@ -147,76 +172,92 @@
             }
 
             atualizarGrafico();
+            listarArquivosRms()
 
             document.getElementById('atualizarGrafico').addEventListener("click", function () {
                 atualizarGrafico();
             })
 
-            document.getElementById('acessarLog').addEventListener("click", function() {
-                console.log(ip)
-                window.open(`http://${ip}:${port}${pathBase }/log`, "_blank"); 
+            document.getElementById('acessarLog').addEventListener("click", function () {
+                window.open(`http://${ip}:${port}${pathBase}/log`, "_blank");
+            })
+
+            document.getElementById('atualizarListaDeArquivos').addEventListener("click", function () {
+                listarArquivosRms();
             })
         }
 
     </script>
 
     <style>
-        html, body, h1 {
+        html,
+        body,
+        h1 {
             margin: 0;
             padding: 0;
             font-family: 'Roboto', sans-serif;
         }
-
     </style>
 </head>
 
-<body>
-    <div class="container" style="width: 100% ;display: flex; flex-direction: column; justify-content: center; align-content: center ;padding: 20px;">
-        <div class="acoes" style="display: flex; flex-direction: column;" >
-            <h1>painel de monitoramento</h1>
-            <div id="configuracaoLeitura" style="margin-top: 10px;">
-                <div>
-                    <input id="alterarIp" value="<%= ipAtual %>" type="text" />
-                    <button onclick="mudarIp()">Mudar Ip Monitorado</button>
+<body style="overflow: hidden">
+    <div class="container" style="display: flex; flex-direction: row;">
+        <div class="painelEsquerdo"
+            style="display: flex; flex-direction: column; justify-content: center; align-content: center ;padding: 20px;">
+            <div class="acoes" style="display: flex; flex-direction: column;">
+                <h1>painel de monitoramento</h1>
+                <div id="configuracaoLeitura" style="margin-top: 10px;">
+                    <div>
+                        <input id="alterarIp" value="<%= ipAtual %>" type="text" />
+                        <button onclick="mudarIp()">Mudar Ip Monitorado</button>
+                    </div>
+
+                    <div>
+                        <input id="alterarTempo" value="<%= tempoEntreCapturas %>" type="text" />
+                        <button onclick="alterarTempoEntreCapturas()">Alterar o tempo Entre capturas</button>
+                    </div>
                 </div>
-    
-                <div>
-                    <input id="alterarTempo" value="<%= tempoEntreCapturas %>" type="text" />
-                    <button onclick="alterarTempoEntreCapturas()">Alterar o tempo Entre capturas</button>
+
+                <div id="mudarEstadoCaptura" style="display: flex; flex-direction: row; margin-top: 10px;">
+                    <div style="margin-right: 5px;">
+                        <input type="submit" value="Start" onclick="fazerRequisicao('comecar_captura')">
+                    </div>
+
+                    <div>
+                        <input type="submit" value="Pausar" onclick="fazerRequisicao('pausar_captura')">
+                    </div>
                 </div>
+
+                <div id="exportarCsv"
+                    style="margin-top: 10px; display: flex; flex-direction: row; margin-bottom: 10px;">
+                    <div>
+                        <input onclick="montarCsv()" type="submit" value="Exportar .csv">
+                    </div>
+                    <div class="logss">
+                        <button id="acessarLog">
+                            Acessar log da aplicação
+                        </button>
+                    </div>
+                </div>
+
             </div>
 
-            <div id="mudarEstadoCaptura" style="display: flex; flex-direction: row; margin-top: 10px;">
-                <div style="margin-right: 5px;">
-                    <input type="submit" value="Start" onclick="fazerRequisicao('comecar_captura')">
-                </div>
-    
-                <div>
-                    <input type="submit" value="Pausar" onclick="fazerRequisicao('pausar_captura')">
-                </div>
-            </div>
-
-            <div id="exportarCsv" style="margin-top: 10px; display: flex; flex-direction: row; margin-bottom: 10px;">
-                <div>
-                    <input onclick="montarCsv()" type="submit" value="Exportar .csv">
-                </div>
-                <div class="logss">
-                    <button id="acessarLog">
-                        Acessar log da aplicação
-                    </button>
+            <div class="valores_capturados" style="min-width: 600px; display: flex; flex-direction: column;">
+                <div id="chartContainer" style="height: 370px; width: 100%;"></div>
+                <div style="align-self: center; display: flex; flex-direction: column;">
+                    <div id="numeroDeAmostrasNoVetor"></div>
+                    <div style="max-width: 200px; align-self: center;">
+                        <button id="atualizarGrafico">Atualizar Gráfico</button>
+                    </div>
                 </div>
             </div>
-
         </div>
-
-        <div class="valores_capturados" style="width: 40%; display: flex; flex-direction: column;">
-            <div id="chartContainer" style="height: 370px; width: 100%;"></div>
-            <div style="align-self: center; display: flex; flex-direction: column;">
-                <div id="numeroDeAmostrasNoVetor"></div>
-                <div style="max-width: 200px; align-self: center;">
-                    <button id="atualizarGrafico">Atualizar Gráfico</button>
-                </div>
+        <div class="painelDireito" style="display: flex; flex-direction: column;">
+            <div class="Lista" style="float: left; overflow:auto; height: 70%; width: 100%;">
+                <ul id="listaLinks">
+                </ul>
             </div>
+
         </div>
     </div>
 </body>

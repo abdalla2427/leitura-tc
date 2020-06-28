@@ -36,6 +36,7 @@ var ipParaCaptura = apiConfig.ipParaCaptura
 var endPointCaptura = apiConfig.endPointCaptura
 var ipApi = `${ipParaCaptura}:${apiPort}/${endPointCaptura}`
 var logger = new Logger()
+var pathRms = apiConfig.caminhoPastaArquivosRms
 //#endregion
 
 //#region Parêmetros dinâmicos
@@ -67,7 +68,7 @@ app.get(pathBase + '/', (req, res) => {
         pathBase: pathBase,
         tempoEntreCapturas: tempoEntreCapturas / 1000,
         nodeServerIp: nodeServerIp,
-        port: PORT
+        port: PORT,
     });
 })
 
@@ -112,6 +113,17 @@ app.get(pathBase + '/alterarIp', (req, res) => {
     ipApi = ipParaCaptura + ':' + apiPort + '/i_rms_data';
     res.send(`IP alterado para: ${req.query.ip}`)
 })
+
+app.get(pathBase + '/arquivos_rms', (req, res) => {
+    fs.readdir(path.join(__dirname, pathRms), function (err, files) {
+        if (err) return logger.erro('Unable to scan directory: ' + err)
+        res.send(files)
+    });
+})
+
+app.get(pathBase + '/rms/:endereco_csv', function(req , res){
+    res.sendFile( `${__dirname}/${pathRms}/${req.params.endereco_csv}`);
+});
 //#endregion
 
 //#region Funções para captura e salvamento do arquivo

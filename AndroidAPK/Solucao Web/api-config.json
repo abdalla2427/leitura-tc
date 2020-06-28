@@ -6,5 +6,6 @@
     "apiPort": "80",
     "endPointCaptura": "i_rms_data",
     "tempoEntreCapturas": 5000,
-    "caminhoArquivoDeLog": "web-api-out.log"
+    "caminhoArquivoDeLog": "web-api-out.log",
+    "caminhoPastaArquivosRms": "rms"
 }
