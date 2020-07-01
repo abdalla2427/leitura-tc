@@ -107,7 +107,7 @@
             link.setAttribute('href', data);
             link.setAttribute('download', filename);
             link.click();
-            montarListaRms();
+            listarArquivosRms();
         }
 
         function alterarTempoEntreCapturas() {
@@ -125,7 +125,6 @@
             let listaHTML = document.getElementById('listaLinks')
             listaHTML.innerHTML = ''
             listaValores.forEach(valor => {
-                console.log(valor, `aaa`)
                 let novoFilho = document.createElement("li");
                 novoFilho.innerHTML = `<a href="http://${ip}:${port}${pathBase}/rms/${valor}" target="_blank" style="color: blue;">${valor}</a>`
                 listaHTML.appendChild(novoFilho)
@@ -218,13 +217,15 @@
                     </div>
                 </div>
 
-                <div id="mudarEstadoCaptura" style="display: flex; flex-direction: row; margin-top: 10px;">
+                <div id="mudarEstadoCaptura" style="display: flex; flex-direction: row; margin-top: 10px; align-items: center;">
                     <div style="margin-right: 5px;">
-                        <input type="submit" value="Start" onclick="fazerRequisicao('comecar_captura')">
+                        <input type="submit" value="Iniciar" onclick="fazerRequisicao('comecar_captura')">
                     </div>
-
                     <div>
                         <input type="submit" value="Pausar" onclick="fazerRequisicao('pausar_captura')">
+                    </div>
+                    <div>
+                        <p>aqui se ta ligado</p>
                     </div>
                 </div>
 
@@ -253,7 +254,8 @@
             </div>
         </div>
         <div class="painelDireito" style="display: flex; flex-direction: column;">
-            <div class="Lista" style="float: left; overflow:auto; height: 70%; width: 100%;">
+            <div class="Lista" style="float: left; overflow:auto; height: 70%; width: 100%; margin-top: 40px;">
+                Arquivos .csv disponíveis
                 <ul id="listaLinks">
                 </ul>
             </div>

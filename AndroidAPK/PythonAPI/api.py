@@ -4,7 +4,7 @@ import math
 import random
 from lista import lista_moq
 
-atual = 0;
+atual = 0
 app = Flask(__name__)
 
 class Timer:
@@ -32,6 +32,7 @@ def reset_timer():
 
 @app.route('/i_rms_data')
 def vetor_rms():
+    print('aqui')
     ptr = ''
     delta = random.randint(1, 9)
     for i in range(10):

@@ -198,7 +198,7 @@ const pausarCaptura = () => {
     capturando = false;
 }
 
-const montarCsv = () => {
+const montarCsv = async () => {
     if (valoresRms.length) {
         dataCsv = []
 
@@ -208,15 +208,16 @@ const montarCsv = () => {
 
         valoresRms.forEach((element, index) => dataCsv.push({
             ValoresRms: element,
-            Tempo: timeStamp(new Date(Math.trunc(tempoMediOEntreAmostras * index + tempoReferencia))),
-            TimeStamp: Math.trunc((tempoMediOEntreAmostras * index + tempoReferencia))
+            TimeStamp: timeStamp(new Date(Math.trunc(tempoMediOEntreAmostras * index + tempoReferencia))),
+            EPOCH: Math.trunc((tempoMediOEntreAmostras * index + tempoReferencia))
         }))
 
         logger.debug(`O timestamp da última amostra foi: ${timeStamp(new Date(timeStampDaUltimaCaptura))}. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
 
         try {
             if (dataCsv.length) {
-                const csv = new ObjectsToCsv(dataCsv).toDisk(caminhoUltimoCsvGerado, { append: false });
+                const csv = new ObjectsToCsv(dataCsv)
+                await csv.toDisk(caminhoUltimoCsvGerado, { append: false });
             }
         }
         catch (e) {
