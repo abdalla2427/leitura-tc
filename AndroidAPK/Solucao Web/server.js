@@ -198,7 +198,7 @@ const comecarCaptura = () => {
             contadorDeTimeouts++;
             if (contadorDeTimeouts > numTimeouts) {
                 contadorDeTimeouts = 0;
-                logger.erro(`[ERROR] Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32`)
+                logger.erro(`Ocorreram mais de ${numTimeouts} Timeouts ao consultar o ESP32`)
                 montarCsv();
             }
         })
