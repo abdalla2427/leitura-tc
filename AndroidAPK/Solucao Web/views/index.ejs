@@ -10,6 +10,7 @@
         var port = '<%= port %>' || '80'
         var pathBase = "<%= pathBase%>"
         var ultimoCsv;
+        var estadoAtualDaCaptura;
 
         function fazerRequisicao(value) {
             var xhr = new XMLHttpRequest();
@@ -130,6 +131,41 @@
                 listaHTML.appendChild(novoFilho)
             })
         }
+
+        function checarDivCaptura() {
+            if (estadoAtualDaCaptura == true) {
+                if (!(document.getElementById('estadoCaptura').innerHTML == "Capturando")) {
+                    document.getElementById('estadoCaptura').innerHTML = "Capturando"
+                }
+                document.getElementById('estadoCaptura').style.color = "Green"
+                document.getElementById('divIniciarCaptura').style.display = "None"
+                document.getElementById('divPausarCaptura').style.display = "Inline"
+            } else {
+                if (!(document.getElementById('estadoCaptura').innerHTML == "Captura pausada")) {
+                    document.getElementById('estadoCaptura').innerHTML = "Captura pausada"
+                }
+                document.getElementById('estadoCaptura').style.color = "Red"
+                document.getElementById('divPausarCaptura').style.display = "None"
+                document.getElementById('divIniciarCaptura').style.display = "Inline"
+            }
+        }
+
+        function atualizarEstadoDaCaputra() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    let estadoAtual = JSON.parse(xhr.response);
+                    console.log(estadoAtual)
+                    estadoAtualDaCaptura = estadoAtual
+                    checarDivCaptura();
+                }
+            }
+            xhr.open('get', `http://${ip}:${port}${pathBase}/estado_atual_captura`, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+            xhr.send();
+        }
+
+
     </script>
 
     <script>
@@ -181,9 +217,9 @@
                 window.open(`http://${ip}:${port}${pathBase}/log`, "_blank");
             })
 
-            document.getElementById('atualizarListaDeArquivos').addEventListener("click", function () {
-                listarArquivosRms();
-            })
+            atualizarEstadoDaCaputra()
+
+            setInterval(atualizarEstadoDaCaputra, 1000)
         }
 
     </script>
@@ -217,15 +253,15 @@
                     </div>
                 </div>
 
-                <div id="mudarEstadoCaptura" style="display: flex; flex-direction: row; margin-top: 10px; align-items: center;">
-                    <div style="margin-right: 5px;">
+                <div id="mudarEstadoCaptura"
+                    style="display: flex; flex-direction: row; margin-top: 10px; align-items: center;">
+                    <div id="estadoCaptura" style="min-width: 200px;">
+                    </div>
+                    <div id="divIniciarCaptura" style="margin-right: 5px;">
                         <input type="submit" value="Iniciar" onclick="fazerRequisicao('comecar_captura')">
                     </div>
-                    <div>
+                    <div id="divPausarCaptura">
                         <input type="submit" value="Pausar" onclick="fazerRequisicao('pausar_captura')">
-                    </div>
-                    <div>
-                        <p>aqui se ta ligado</p>
                     </div>
                 </div>
 

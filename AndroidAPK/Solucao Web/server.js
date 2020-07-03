@@ -124,6 +124,10 @@ app.get(pathBase + '/arquivos_rms', (req, res) => {
 app.get(pathBase + '/rms/:endereco_csv', function(req , res){
     res.sendFile( `${__dirname}/${pathRms}/${req.params.endereco_csv}`);
 });
+
+app.get(pathBase + '/estado_atual_captura', (req, res) => {
+    res.send(capturando)
+})
 //#endregion
 
 //#region Funções para captura e salvamento do arquivo
@@ -149,6 +153,13 @@ const comecarCaptura = () => {
             if ((numeroDeZerosAtual > numeroDeZerosAnterior) && (valoresRms.length > 0)) {
                 logger.debug("O ESP3 Reiniciou")
                 montarCsv();
+            }
+
+            if (tempoReferencia) {
+                if (new Date(new Date(tempoReferencia).getTime() + 60 * 60 * 24 * 1000) < new Date()) {
+                    logger.debug("Passaram-se 24 horas desde a primeira captura")
+                    montarCsv();
+                }
             }
 
             if (valoresRms.length == 0) {//primeira captura
