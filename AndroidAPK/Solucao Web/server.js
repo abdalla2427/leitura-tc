@@ -121,7 +121,7 @@ app.get(pathBase + '/arquivos_rms', (req, res) => {
     });
 })
 
-app.get(pathBase + '/rms/:endereco_csv', (req, res) => {
+app.get(pathBase + '/rms/:endereco_csv', function(req , res){
     res.sendFile( `${__dirname}/${pathRms}/${req.params.endereco_csv}`);
 });
 
@@ -237,6 +237,7 @@ const montarCsv = async () => {
         valoresRms = [];
         ultimoValorDoContador = 0;
         numeroDeZerosAnterior = 0;
+        tempoReferencia = 0;
     }
 }
 
