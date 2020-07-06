@@ -6,7 +6,7 @@ const path = require('path');
 const ejs = require('ejs');
 const cors = require('cors')
 const fs = require('fs');
-const apiConfig =  JSON.parse(fs.readFileSync("api-config.json"))
+const apiConfig = JSON.parse(fs.readFileSync("api-config.json"))
 //#endregion
 
 //#region Classe para Log da Aplicação
@@ -120,8 +120,8 @@ app.get(pathBase + '/arquivos_rms', (req, res) => {
     });
 })
 
-app.get(pathBase + '/rms/:endereco_csv', function(req , res){
-    res.sendFile( `${__dirname}/${pathRms}/${req.params.endereco_csv}`);
+app.get(pathBase + '/rms/:endereco_csv', function (req, res) {
+    res.sendFile(`${__dirname}/${pathRms}/${req.params.endereco_csv}`);
 });
 
 app.get(pathBase + '/estado_atual_captura', (req, res) => {
@@ -224,20 +224,16 @@ const montarCsv = async () => {
 
         logger.debug(`O timestamp da última amostra foi: ${timeStamp(new Date(timeStampDaUltimaCaptura))}. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
 
-        try {
-            if (dataCsv.length) {
-                const csvString = JSON.stringify(dataCsv)
-                // const csv = new ObjectsToCsv(dataCsv)
-                // await csv.toDisk(caminhoUltimoCsvGerado, { append: false });
-                fs.writeFile(caminhoUltimoCsvGerado, csvString, function(err) {
-                    if(err) {
-                       logger.error("Erro ao escreve dados no csv.")
-                    }
-                }); 
-            }
-        }
-        catch (e) {
-            logger.erro(`Erro ao escrever no csv`)
+
+        if (dataCsv.length) {
+            const csvString = JSON.stringify(dataCsv)
+            // const csv = new ObjectsToCsv(dataCsv)
+            // await csv.toDisk(caminhoUltimoCsvGerado, { append: false });
+            fs.writeFile(caminhoUltimoCsvGerado, csvString, function (err) {
+                if (err) {
+                    logger.error("Erro ao escrever os dados no csv.")
+                }
+            });
         }
         valoresRms = [];
         ultimoValorDoContador = 0;
