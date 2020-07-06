@@ -6,7 +6,6 @@ const path = require('path');
 const ejs = require('ejs');
 const cors = require('cors')
 const fs = require('fs');
-const ObjectsToCsv = require('objects-to-csv');
 const apiConfig =  JSON.parse(fs.readFileSync("api-config.json"))
 //#endregion
 
@@ -227,8 +226,14 @@ const montarCsv = async () => {
 
         try {
             if (dataCsv.length) {
-                const csv = new ObjectsToCsv(dataCsv)
-                await csv.toDisk(caminhoUltimoCsvGerado, { append: false });
+                const csvString = JSON.stringify(dataCsv)
+                // const csv = new ObjectsToCsv(dataCsv)
+                // await csv.toDisk(caminhoUltimoCsvGerado, { append: false });
+                fs.writeFile(caminhoUltimoCsvGerado, csvString, function(err) {
+                    if(err) {
+                       logger.error("Erro ao escreve dados no csv.")
+                    }
+                }); 
             }
         }
         catch (e) {
