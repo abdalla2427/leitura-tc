@@ -1,5 +1,5 @@
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 class Constantes:
     def __init__(self):
@@ -13,6 +13,8 @@ class Constantes:
         self.tipoEvento = "Tipo de evento"
         self.horaEvento = "Hora do evento (HH:MM)"
         self.timeStamp = "TimeStamp"
+        self.valoresRms = "ValoresRms"
+        self.epoch = "EPOCH"
 
 constantes = Constantes()
 
@@ -23,6 +25,11 @@ nome_teste = constantes.nomeTeste
 tag_inicio_data_teste = constantes.tagInicioDataTeste
 
 csv_api = pd.read_csv(nome_api, delimiter=',')
+output = [ i for i in csv_api[constantes.valoresRms]]
+
+plt.plot(output)
+
+plt.show()
 csv_teste = pd.read_csv(nome_teste, delimiter=';')
 
 index_dia_evento_teste = nome_teste.find(tag_inicio_data_teste)
@@ -124,9 +131,9 @@ def criar_vetores_ligando_desligando():
     for index, row in csv_api.iterrows():
         hora = timestamp_para_hora(row[constantes.timeStamp])
         verificar_se_ocorreu_um_evento(formatar_hora(hora), 1)
-        verificar_se_ocorreu_um_evento(formatar_hora(hora), 2)
+        #verificar_se_ocorreu_um_evento(formatar_hora(hora), 2)
 
-def main():
+def merge():
     if (dia_evento_api == dia_evento_teste):
 
         montar_lista_de_eventos()
@@ -134,11 +141,14 @@ def main():
 
         csv_api["ligando_1"] = ligando_1
         csv_api["desligando_1"] = desligando_1
-        csv_api["ligando_2"] = ligando_2
-        csv_api["desligando_2"] = desligando_2
+        csv_api[constantes.valoresRms] = csv_api[constantes.valoresRms].map('{:4.3f}'.format)
 
-        csv_api.to_csv('merged.csv')
+        #csv_api["ligando_2"] = ligando_2
+        #csv_api["desligando_2"] = desligando_2
+
+        csv_api.to_csv('./saida/merged.csv', index=False)
+        return csv_api;
 
 
 if __name__ == '__main__':
-    main()
+    merge()
