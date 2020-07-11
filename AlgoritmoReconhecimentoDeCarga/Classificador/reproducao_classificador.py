@@ -1,6 +1,6 @@
 import math
 import pandas as pd
-from entradateste import aaa
+
 
 pesos_rede = [[[-2.21595734,  0.13902692, -0.77176005, -0.34096085, -1.8570363 ],
                 [ 0.33239099, -0.91424223, -0.23843466, -0.19490422, -0.99810873],
@@ -30,16 +30,17 @@ pesos_para_camada_3 = pesos_rede[2]
 
 # entrada = [2.575,2.572,2.572,2.571,2.580]
 csv_entradas = pd.read_csv('./teste_classificador.csv')
+colunas = csv_entradas.columns.tolist()
 coluna_de_eventos = ['ligando_1', 'desligando_1']
 
-colunas = csv_entradas.columns.tolist()
 [colunas.remove(nome_evento) for nome_evento in coluna_de_eventos]
 
-entradas = csv_entradas[colunas]
+entradas_df = csv_entradas[colunas]
+entradas = []
 
-# z = []
-# for index, row in entradas.iterrows():
-#     z.append([float(f"{item:5.3f}") for item in row])
+def prepara_entrada():
+        for index, row in entradas_df.iterrows():
+            entradas.append([float(f"{item:5.3f}") for item in row])
 
 def funcao_de_ativacao(valor):
    return max([0, valor])
@@ -69,7 +70,10 @@ def propagar_entrada_para_saida(entrada, saida, pesos, layer, funcao=False):
     else:
         return [funcao_de_ativacao_saida(saida[i]) for i in range(len(saida))]
 
-for entrada in aaa:
+prepara_entrada()
+saidas = []
+
+for entrada in entradas:
     camada_1 = [0] * 5
     camada_2 = [0] * 5
     camada_3 = [0] * 2
@@ -78,4 +82,5 @@ for entrada in aaa:
     saida_2 = propagar_entrada_para_saida(saida_1, camada_2, pesos_para_camada_2, 1)
     saida = propagar_entrada_para_saida(saida_2, camada_3, pesos_para_camada_3, 2, True)
 
+    saidas.append(saida)
     print(saida)
