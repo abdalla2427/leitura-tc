@@ -37,6 +37,7 @@ def criar_dataframe(caminho):
                   bol1 = bol1 or bool(j)
             for j in i["desligando_1"]:
                   bol2 = bol2 or bool(j)
+                  
             y[cont] = [int(bol1), int(bol2)]
             lista.z_final.insert(0, X[cont] + y[cont])
             cont += 1
@@ -52,6 +53,3 @@ for nome in arquivos:
 header_csv = [str(i + 1) + "a amostra" for i in range(len(lista.x_final[0]))] + ["ligando_1", "desligando_1"]
 saida=pd.DataFrame(lista.z_final, columns=header_csv)
 saida.to_csv('./saida_teste.csv', header=True, index=False)
-# X = [[0., 0.], [1., 1.]]
-# y = [0, 1]
-# clf = MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(5, 2), random_state=1)
