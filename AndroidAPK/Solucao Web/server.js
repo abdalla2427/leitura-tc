@@ -224,12 +224,10 @@ const montarCsv = async () => {
 
         logger.debug(`O timestamp da última amostra foi: ${timeStamp(new Date(timeStampDaUltimaCaptura))}. Ou em EPOCH: ${timeStampDaUltimaCaptura}`);
 
-
         if (dataCsv.length) {
-            const csvString = JSON.stringify(dataCsv)
             // const csv = new ObjectsToCsv(dataCsv)
             // await csv.toDisk(caminhoUltimoCsvGerado, { append: false });
-            fs.writeFile(caminhoUltimoCsvGerado, csvString, function (err) {
+            fs.writeFile(caminhoUltimoCsvGerado, converter(dataCsv), function (err) {
                 if (err) {
                     logger.error("Erro ao escrever os dados no csv.")
                 }
@@ -264,6 +262,14 @@ const fileTimeStamp = (a) => {
         + a.getMinutes().toString().padStart(2, "0") + "_"
         + a.getSeconds().toString().padStart(2, "0") + "_"
         + a.getMilliseconds().toString().padStart(3, "0");
+}
+
+const converter = (obj) => {
+    let texto = "ValoresRms,TimeStamp,EPOCH\n"
+    obj.forEach(item => {
+        texto += `${item.ValoresRms},${item.TimeStamp},${item.EPOCH}\n`
+    })
+    return texto
 }
 //#endregion
 
