@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 class Constantes:
     def __init__(self):
-        self.nomeApi = 'rms01_07_2020____17_38_58_837.csv'
+        self.nomeApi = 'entrada.csv'
         self.tagInicioDataApi = '____'
 
         self.nomeTeste = 'registro_de_eventos_01_07_2020.csv'
@@ -134,20 +134,18 @@ def criar_vetores_ligando_desligando():
         #verificar_se_ocorreu_um_evento(formatar_hora(hora), 2)
 
 def merge():
-    if (dia_evento_api == dia_evento_teste):
+    montar_lista_de_eventos()
+    criar_vetores_ligando_desligando()
 
-        montar_lista_de_eventos()
-        criar_vetores_ligando_desligando()
+    csv_api["ligando_1"] = ligando_1
+    csv_api["desligando_1"] = desligando_1
+    csv_api[constantes.valoresRms] = csv_api[constantes.valoresRms].map('{:4.3f}'.format)
 
-        csv_api["ligando_1"] = ligando_1
-        csv_api["desligando_1"] = desligando_1
-        csv_api[constantes.valoresRms] = csv_api[constantes.valoresRms].map('{:4.3f}'.format)
+    #csv_api["ligando_2"] = ligando_2
+    #csv_api["desligando_2"] = desligando_2
 
-        #csv_api["ligando_2"] = ligando_2
-        #csv_api["desligando_2"] = desligando_2
-
-        csv_api.to_csv('./saida/merged.csv', index=False)
-        return csv_api;
+    csv_api.to_csv('./saida/merged.csv', index=False)
+    return csv_api;
 
 
 if __name__ == '__main__':

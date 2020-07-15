@@ -8,11 +8,10 @@ class Lista:
             self.y_final = []
             self.z_final = []
 
-glob.glob("./paraOBanco/*.csv")
 lista = Lista()
+chunk_size = 5
 def criar_dataframe(caminho):
       csv_api = pd.read_csv(caminho, delimiter=',')
-      chunk_size = 5
       tamanho_csv = csv_api.shape[0]
       df = pd.DataFrame()
       x = []
@@ -23,11 +22,9 @@ def criar_dataframe(caminho):
                   x.append(csv_api[n: n + chunk_size]["ValoresRms"])
                   y.append(csv_api[n:n + chunk_size][["ligando_1", "desligando_1"]])
       
-      cont = 0
       X=[]
       for i in x:
             X.append([f'{j:5.3f}' for j in i])
-            cont += 1
 
       cont = 0
       for i in y:
@@ -39,17 +36,14 @@ def criar_dataframe(caminho):
                   bol2 = bol2 or bool(j)
                   
             y[cont] = [int(bol1), int(bol2)]
-            lista.z_final.insert(0, X[cont] + y[cont])
+            lista.z_final.append(X[cont] + y[cont])
             cont += 1
-      
-      lista.x_final = X + lista.x_final
-      lista.y_final = y + lista.y_final
       
 arquivos = glob.glob("./paraOBanco/*.csv")
 
 for nome in arquivos:
       criar_dataframe(nome)
 
-header_csv = [str(i + 1) + "a amostra" for i in range(len(lista.x_final[0]))] + ["ligando_1", "desligando_1"]
+header_csv = [str(i + 1) + "a amostra" for i in range(chunk_size)] + ["ligando_1", "desligando_1"]
 saida=pd.DataFrame(lista.z_final, columns=header_csv)
 saida.to_csv('./saida_teste.csv', header=True, index=False)

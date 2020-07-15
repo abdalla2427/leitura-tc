@@ -1,6 +1,6 @@
 import math
 import pandas as pd
-
+from entradateste import aaa
 
 pesos_rede = [[[-2.21595734,  0.13902692, -0.77176005, -0.34096085, -1.8570363 ],
                 [ 0.33239099, -0.91424223, -0.23843466, -0.19490422, -0.99810873],
@@ -48,7 +48,7 @@ def funcao_de_ativacao(valor):
 def funcao_de_ativacao_saida(valor):
     if (valor >= 10):
         return 1
-    elif (valor<= -10):
+    elif (valor< -10):
         return 0
     else: 
         resultado = (1/(1 + math.exp(-valor)))
@@ -73,14 +73,16 @@ def propagar_entrada_para_saida(entrada, saida, pesos, layer, funcao=False):
 prepara_entrada()
 saidas = []
 
-for entrada in entradas:
+for entrada in aaa[0:2]:
     camada_1 = [0] * 5
     camada_2 = [0] * 5
     camada_3 = [0] * 2
 
     saida_1 = propagar_entrada_para_saida(entrada, camada_1, pesos_para_camada_1, 0)
+    print(saida_1)
     saida_2 = propagar_entrada_para_saida(saida_1, camada_2, pesos_para_camada_2, 1)
+    print(saida_2)
     saida = propagar_entrada_para_saida(saida_2, camada_3, pesos_para_camada_3, 2, True)
+    print(saida)
 
     saidas.append(saida)
-    print(saida)
