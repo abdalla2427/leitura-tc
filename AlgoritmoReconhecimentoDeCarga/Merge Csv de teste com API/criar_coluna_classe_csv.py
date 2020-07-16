@@ -12,7 +12,7 @@ for nome in arquivos:
     numero_de_linhas = csv_api.shape[0]
 
     vetor_em_branco = [0 for i in range(numero_de_linhas)]
-    csv_api["classe"] = vetor_em_branco
+    csv_api["ClasseAparelho"] = vetor_em_branco
     csv_api['ValoresRms'] = csv_api['ValoresRms'].map('{:,.3f}'.format)
 
     csv_api.to_csv('./saida/' + nome_arquivo, index=False)
