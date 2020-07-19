@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #define tamanhoJanela 5
-#define tamanhoSaidaRede 2
+#define tamanhoSaidaRede 3
 #define tamanhoCamadaInterna 5
 #define debug 1
 
@@ -10,30 +10,31 @@ float camada1[tamanhoCamadaInterna] = { 0 };
 float camada2[tamanhoCamadaInterna] = { 0 };
 float saidaRede[tamanhoSaidaRede] = { 0 };
 
-float biasEntrada[tamanhoCamadaInterna] = { 1.31951695, -1.17376615, -0.71409326, -0.55870824, -0.1274779 };
-float biasCamada1[tamanhoCamadaInterna] = {-0.69192777, -0.39505221,  0.02265227, -0.17027953, -0.87033633};
-float biasCamada2[tamanhoSaidaRede] = {-6.00660515,  2.97287126};
+float biasEntrada[tamanhoCamadaInterna] = { 0.5221433 , -0.28974283, -0.71409326, -0.53784864,  3.02889286 };
+float biasCamada1[tamanhoCamadaInterna] = {-0.69192777,  1.06735616, -1.0011572 , -0.64673044, -1.91282453};
+float biasCamada2[tamanhoSaidaRede] = {-3.19054419,  2.73373855,  0.35397143};
 
 int numeroDeNeuroniosDeSaida;
 
 //pesosParaCamdaX[NohOrigem][NohDestino]
-float pesosParaCamada1[5][5] = {{-2.21595734,  0.13902692, -0.77176005, -0.34096085, -1.8570363 },
-                { 0.33239099, -0.91424223, -0.23843466, -0.19490422, -0.99810873},
-                {-0.30775306, -0.36917993, -0.45628827,  0.40991321, -1.68630635},
-                {-0.4026412 , -1.01636876,  0.09060966, -0.72841166, -0.7430336 },
-                { 2.99476762, -0.75755223, -0.28804942,  0.16319673,  1.30222625}};
+float pesosParaCamada1[5][5] = {{-5.23753048, -1.55944794, -0.764496715,-0.321165609, -3.33818016},
+       { 2.17744233, -1.10460068, -0.236190662, -0.176716655, -2.31777594},
+       { 0.327893887,  0.00161291773, -0.451993962, 0.526103751,  0.559806677},
+       {-4.45965651,  0.322068420,  0.0897568940, -0.601905498,  3.05674680},
+       { 7.40254218,  2.71763668, -0.285338477, 0.219689785,  2.40873829}};
 
-float pesosParaCamada2[5][5] = {{-0.62010158,  0.50114589,  0.92234769, -0.20217932,  2.23636883},     
-                {-0.28482048,  0.29105352,  0.19711757, -0.74399458,  0.49794197},
-                { 0.75473956,  0.38313632, -0.33896665,  0.44661062, -0.61256876},
-                {-0.08044579,  0.6414196 , -0.42731671, -0.32764798, -0.48729865},
-                {-0.7420365 ,  0.80040399, -0.54578971, -0.36181863,  1.71091415}};
+float pesosParaCamada2[5][5] = {{-0.61426557, -9.69862923, -0.67327078, -0.11079759, -0.38204163},
+       {-0.28213993,  1.32910803,  0.32210186, -0.77492539, -0.35273337},
+       { 0.74763641,  0.37953047, -0.3357765 ,  0.44240739, -0.60680364},
+       {-0.07968868,  0.62307881, -0.31713313, -0.32456436, -0.56409033},
+       {-0.73505291,  2.89521433, -1.74906174, -0.37461758, -0.04567016}};
 
-float pesosParaCamada3[5][2] = {{-0.73380492, -0.15859089},
-                { 0.33740235, -0.70982787},
-                {-0.61637897,  0.66683674},
-                { 0.2132334 ,  0.00978615},
-                { 0.98322924, -2.29419219}};
+float pesosParaCamada3[5][3] = {{-0.67995156, -0.14695204,  0.33239662},
+       { 2.47090284, -3.83612717,  0.51034527},
+       { 0.37085337,  0.41388947,  0.28097476},
+       { 0.22258334,  0.5844932 , -0.58918653},
+       { 0.58776962, -0.40017705, -0.45374138}};
+
 
 //Vetor para teste da RNA
 float vetorEntradas[100][5] = {{0.7229986115623536, 0.19509200436247787, 0.7849556681279058, 0.28689232605514414, 0.26658855440176077}, {0.043698219159143736, 0.9361554925428931, 0.24846675337542068, 0.18447383141912288, 0.8904684998812215}, {0.8522545598720415, 0.01130143720816823, 0.5942671351774969, 0.013278580607276935, 0.1700987125671105}, {0.05164512557475154, 0.8329478660400417, 0.2827660257009533, 0.4459430088078461, 0.8819368071099962}, {0.22814936021458865, 0.7472829208139924, 0.1417284767488881, 0.4947327665460389, 0.8385423990339614}, {0.6390809642165746, 0.29583168752015965, 0.020686114347692963, 0.33475086091997197, 
@@ -47,6 +48,21 @@ float vetorEntradas[100][5] = {{0.7229986115623536, 0.19509200436247787, 0.78495
 float maximo(float a, float b)
 {
     return ((a >= b) ? a : b);
+}
+
+int maximo3(float a, float b, float c) {
+    float max = a;
+    int saidaMax = 0;
+
+    if (b > max) {
+        max = b;
+        saidaMax = 1;
+    }
+    if (c > max) {
+        max = c;
+        saidaMax = 2;
+    }
+    return saidaMax;
 }
 
 float reluFunction(float valor) {
@@ -66,6 +82,22 @@ float logisticFunction(float valor) {
         else
             return 0.0;
     }
+}
+
+int softMax(float *vetorZ, int tamanhoVetorZ) {
+    float saida[3] = { 0 };
+    float soma = 0;
+    int i;
+
+    for (i = 0; i < tamanhoVetorZ; i++) {
+        soma += expf(vetorZ[i]);
+    }
+
+    for (i = 0; i < tamanhoVetorZ; i++) {
+        saida[i] = (expf(vetorZ[i])) / (soma);
+    }
+
+    return maximo3(saida[0], saida[1], saida[2]);
 }
 
 int propagarEntradaParaProximaCamada(float *entrada, int tamanhoEntrada, float *saida, int tamanhoSaida, float pesos[][tamanhoCamadaInterna], float biasRede[])
@@ -106,20 +138,20 @@ int propagarEntradaParaSaida(float *entrada, int tamanhoEntrada, float *saida, i
     }
 
     for (i = 0; i < tamanhoSaida; i++) {
-        saida[i] = logisticFunction(saida[i] + biasRede[i]);
+        saida[i] = saida[i] + biasRede[i];
         //printf("%f ", saida[i])
     }
-    //printf("\n")
 
-    return 0;
+    return softMax(saida, tamanhoSaida);
 }
 
 
 int main() {
     int tuplaBaseTeste;
     int amostra;
+    int eventoSaida;
 
-    for (tuplaBaseTeste = 0; tuplaBaseTeste < 2; tuplaBaseTeste++) {
+    for (tuplaBaseTeste = 0; tuplaBaseTeste < 100; tuplaBaseTeste++) {
         for (amostra = 0; amostra < tamanhoJanela; amostra++) {
             camada1[amostra] = 0;
             camada2[amostra] = 0;
@@ -127,10 +159,12 @@ int main() {
         }
         saidaRede[0] = 0;
         saidaRede[1] = 0;
+        saidaRede[2] = 0;
 
         propagarEntradaParaProximaCamada(entradaRede, tamanhoJanela, camada1, tamanhoCamadaInterna, pesosParaCamada1, biasEntrada);
         propagarEntradaParaProximaCamada(camada1, tamanhoCamadaInterna, camada2, tamanhoCamadaInterna, pesosParaCamada2, biasCamada1);
-        propagarEntradaParaSaida(camada2, tamanhoCamadaInterna, saidaRede, tamanhoSaidaRede, pesosParaCamada3, biasCamada2);
+        eventoSaida = propagarEntradaParaSaida(camada2, tamanhoCamadaInterna, saidaRede, tamanhoSaidaRede, pesosParaCamada3, biasCamada2);
+        printf("%d\n", eventoSaida);
     }
 
     return 0;
