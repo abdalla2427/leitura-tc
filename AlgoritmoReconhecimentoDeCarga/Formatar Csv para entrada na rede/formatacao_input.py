@@ -1,5 +1,6 @@
 import pandas as pd
 import glob
+import matplotlib.pyplot as plt
 
 
 class Lista:
@@ -10,6 +11,7 @@ class Lista:
 
 lista = Lista()
 chunk_size = 5
+nome_pasta = 'eventos_2'
 def criar_dataframe(caminho):
       csv_api = pd.read_csv(caminho, delimiter=',')
       tamanho_csv = csv_api.shape[0]
@@ -38,11 +40,11 @@ def criar_dataframe(caminho):
             lista.z_final.append(X[cont] + y[cont])
             cont += 1
       
-arquivos = glob.glob("./eventos/*.csv")
+arquivos = glob.glob("./"+ nome_pasta +"/*.csv")
 
 for nome in arquivos:
       criar_dataframe(nome)
 
 header_csv = [str(i + 1) + "a amostra" for i in range(chunk_size)] + ["ClasseAparelho"]
 saida=pd.DataFrame(lista.z_final, columns=header_csv)
-saida.to_csv('./saida_teste.csv', header=True, index=False)
+saida.to_csv('./'+ nome_pasta + '.csv', header=True, index=False)
