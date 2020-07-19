@@ -28,15 +28,17 @@ def criar_dataframe(caminho):
 
       cont = 0
       for i in y:
-            bol1 = False
+            bol1 = 0
             for j in i:
-                  bol1 = bol1 or bool(j)
+                  if(j > bol1):
+                        bol1 = j
+
                   
             y[cont] = [int(bol1)]
             lista.z_final.append(X[cont] + y[cont])
             cont += 1
       
-arquivos = glob.glob("./paraOBanco/*.csv")
+arquivos = glob.glob("./eventos/*.csv")
 
 for nome in arquivos:
       criar_dataframe(nome)
