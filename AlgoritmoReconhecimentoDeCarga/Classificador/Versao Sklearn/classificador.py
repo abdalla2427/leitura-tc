@@ -35,7 +35,7 @@ def pretty_print_matriz_confusao(matrix):
         print('Número de Verdadeiros Positivos da classe {0}: {1}'.format(i, tp))
         print('Número de Falsos Positivos da classe {0}: {1}'.format(i, fp))
 
-entrada_rede = pd.read_csv('./teste_entrada_algoritmo/entrada_classificador.csv')
+entrada_rede = pd.read_csv('./treinamento_algoritmo/entrada_classificador.csv')
 teste_rede = pd.read_csv('./teste_classificador.csv')
 
 colunas = entrada_rede.columns.tolist()
@@ -56,15 +56,13 @@ prepara_teste()
 clf = MLPClassifier(solver='lbfgs', alpha=1e-3, hidden_layer_sizes=(5,5), random_state=1, activation='relu', max_iter=500)
 
 clf.fit(X,y)
-predicao = clf.predict(aaa)
+predicao = clf.predict(entrada_teste)
 predicao = predicao.tolist()
 
-for i in predicao:
-    print(i)
 
-#matriz = confusion_matrix(resposta_esperada_teste, predicao)
+matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
-#pretty_print_matriz_confusao(matriz)
+pretty_print_matriz_confusao(matriz)
 
 # print(clf.intercepts_)
 # print(clf.coefs_)
