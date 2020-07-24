@@ -62,7 +62,7 @@ predicao = predicao.tolist()
 
 matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
-pretty_print_matriz_confusao(matriz)
+#pretty_print_matriz_confusao(matriz)
 
 # print(clf.intercepts_)
 # print(clf.coefs_)
