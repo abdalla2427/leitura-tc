@@ -56,11 +56,12 @@ prepara_teste()
 clf = MLPClassifier(solver='lbfgs', alpha=1e-3, hidden_layer_sizes=(5,5), random_state=1, activation='relu', max_iter=500)
 
 clf.fit(X,y)
-predicao = clf.predict(entrada_teste)
+predicao = clf.predict(aaa)
 predicao = predicao.tolist()
 
+print(predicao)
 
-matriz = confusion_matrix(resposta_esperada_teste, predicao)
+#matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
 #pretty_print_matriz_confusao(matriz)
 
