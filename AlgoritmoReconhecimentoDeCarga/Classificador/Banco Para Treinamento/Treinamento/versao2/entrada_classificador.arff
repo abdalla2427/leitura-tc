@@ -1,4 +1,19 @@
-1a amostra,2a amostra,3a amostra,4a amostra,5a amostra,ClasseAparelho
+% 1. Title: NILM Database
+% 
+% 2. Sources:
+%      (a) Creator: Lucas Abdalla Menezes
+%      (b) Donor: 
+%      (c) Date: July, 2020
+%
+% 3. Classes - 0 - no activation / 1 - turning MWOven on / 2 - turning MWOven off
+@RELATION NILMData
+@ATTRIBUTE 1a_amostra  NUMERIC
+@ATTRIBUTE 2a_amostra  NUMERIC
+@ATTRIBUTE 3a_amostra  NUMERIC
+@ATTRIBUTE 4a_amostra  NUMERIC
+@ATTRIBUTE 5a_amostra  NUMERIC
+@ATTRIBUTE class {0,1,2}
+@DATA
 0.732,0.725,0.733,0.730,2.467,1
 0.725,0.733,0.730,2.467,2.477,1
 0.733,0.730,2.467,2.477,2.481,1
