@@ -53,16 +53,21 @@ z = []
 
 prepara_x_y()
 prepara_teste() 
-clf = MLPClassifier(solver='lbfgs', alpha=1e-3, hidden_layer_sizes=(5,5), random_state=1, activation='relu', max_iter=10000)
+clf = MLPClassifier(solver='lbfgs', alpha=1e-3, hidden_layer_sizes=(5,8,8,5), random_state=1, activation='relu', max_iter=10000)
 
 clf.fit(X,y)
 
-predicao = clf.predict(entrada_teste)
+predicao = clf.predict(aaa)
 predicao = predicao.tolist()
 
-matriz = confusion_matrix(resposta_esperada_teste, predicao)
+for i in predicao:
+    print(i)
+# matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
-pretty_print_matriz_confusao(matriz)
+# pretty_print_matriz_confusao(matriz)
 
-#print(clf.intercepts_)
-#print(clf.coefs_)
+print("bias")
+print(clf.intercepts_)
+print()
+print("coefs")
+print(clf.coefs_)
