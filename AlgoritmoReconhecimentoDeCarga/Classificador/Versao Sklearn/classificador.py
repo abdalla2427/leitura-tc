@@ -57,14 +57,11 @@ clf = MLPClassifier(solver='lbfgs', alpha=1e-3, hidden_layer_sizes=(5,8,8,5), ra
 
 clf.fit(X,y)
 
-predicao = clf.predict(aaa)
+predicao = clf.predict(entrada_teste)
 predicao = predicao.tolist()
+matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
-for i in predicao:
-    print(i)
-# matriz = confusion_matrix(resposta_esperada_teste, predicao)
-
-# pretty_print_matriz_confusao(matriz)
+pretty_print_matriz_confusao(matriz)
 
 print("bias")
 print(clf.intercepts_)

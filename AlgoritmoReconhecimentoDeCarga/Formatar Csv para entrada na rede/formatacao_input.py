@@ -11,7 +11,7 @@ class Lista:
 
 lista = Lista()
 chunk_size = 5
-nome_pasta = 'zeros_dia_completo'
+nome_pasta = '15'
 def criar_dataframe(caminho):
       csv_api = pd.read_csv(caminho, delimiter=',')
       tamanho_csv = csv_api.shape[0]
