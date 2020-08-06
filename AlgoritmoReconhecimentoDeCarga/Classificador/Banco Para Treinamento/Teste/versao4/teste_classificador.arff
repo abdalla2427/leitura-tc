@@ -14,7 +14,6 @@
 @ATTRIBUTE 5a_amostra  NUMERIC
 @ATTRIBUTE class {0,1,2}
 @DATA
-1a amostra,2a amostra,3a amostra,4a amostra,5a amostra,ClasseAparelho
 0.746,0.740,0.735,0.805,1.346,1
 0.740,0.735,0.805,1.346,1.339,1
 0.735,0.805,1.346,1.339,1.330,1

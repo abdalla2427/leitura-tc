@@ -63,8 +63,8 @@ matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
 pretty_print_matriz_confusao(matriz)
 
-print("bias")
-print(clf.intercepts_)
-print()
-print("coefs")
-print(clf.coefs_)
+# print("bias")
+# print(clf.intercepts_)
+# print()
+# print("coefs")
+# print(clf.coefs_)

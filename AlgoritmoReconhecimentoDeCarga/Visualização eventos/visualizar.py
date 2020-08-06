@@ -1,6 +1,8 @@
-from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.dates as md
+import dateutil
+import datetime
 
 eventos = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -36,16 +38,16 @@ timeStamps = [1596292435,1596292436,1596292436,1596292437,1596292437,1596292438,
 1596304050,1596304052,1596304054]
 ultimoEvento = 235
 
-def to_date(stamp):
-    return datetime.fromtimestamp(stamp)
+date_object = []
 
-def negative(n):
-    return (-n + 2)
+for timeStamp in timeStamps:
+    aux = datetime.datetime.fromtimestamp(timeStamp).strftime('%Y-%m-%d %H:%M:%S')
+    date_object.append(datetime.datetime.strptime(aux, '%Y-%m-%d %H:%M:%S'))
 
-eventos = list(map(negative, eventos))
-timeStamps = list(map(to_date, timeStamps))
+
+dates = matplotlib.dates.date2num(date_object)
+matplotlib.pyplot.plot_date(dates, eventos)
+plt.show()
+
 # for i in range(len(timeStamps)):
 #     print(str(timeStamps[i]) + " evento tipo " + str(eventos[i]))
-
-plt.plot(eventos)
-plt.show()
