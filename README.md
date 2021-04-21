@@ -69,9 +69,9 @@ Os arquivos janelados para reconhecimento de um microondas encontram-se na pasta
 
 Para fazer a configuração do ambiente precisaremos 1. iniciar uma API para consulta dos valores do ESP 32 e 2. inserir o codigo no ESP32 para captura e classificação.
 
-### Confgiuraão API
+### Confgiuração API
 
-[Para configurar a API] (https://github.com/abdalla2427/leitura-tc/tree/master/Documenta%C3%A7%C3%A3o/AndroidAPK/Solucao%20Web) deve-se baixar os conteudo contido na pasta, configurar os parametros do arquivo api-config.json e seguir o tutorial do link.
+[Para configurar a API](https://github.com/abdalla2427/leitura-tc/tree/master/Documenta%C3%A7%C3%A3o/AndroidAPK/Solucao%20Web) deve-se baixar os conteudo contido na pasta, configurar os parametros do arquivo api-config.json e seguir o tutorial do link.
 
 ### Configuração ESP 32
 [Para configurar o ESP 32](https://github.com/abdalla2427/leitura-tc/tree/master/Documenta%C3%A7%C3%A3o/ESP32AnalogReadTimerwifi_06ago2020) deve-se baixar o arquivo .ino da pasta e compilá-lo para o dispositivo por meio da IDE do Arduino.
