@@ -2,8 +2,6 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 import random
-from entradateste import aaa
-
 
 
 # def classificar():
@@ -63,8 +61,35 @@ matriz = confusion_matrix(resposta_esperada_teste, predicao)
 
 pretty_print_matriz_confusao(matriz)
 
-# print("bias")
-# print(clf.intercepts_)
-# print()
-# print("coefs")
-# print(clf.coefs_)
+bias = clf.intercepts_
+
+with open('bias.txt', 'w') as f:
+    index = 1
+    for c in bias:
+
+        bias_camada = f'bias_camada_{str(index)} = ' + '{'
+
+        for i in c.tolist():
+            bias_camada += str(i) + ','
+
+        bias_camada = bias_camada[:-1] + '}'
+
+        f.write(bias_camada + '\n')
+        index += 1
+
+coefs = clf.coefs_
+
+with open('coefs.txt', 'w') as f:
+    index = 1
+    for c in coefs:
+
+        coef_camada = f'coef_camada_{str(index)} = ' + '{'
+
+        for i in c.tolist():
+            coef_camada += str(i) + ','
+
+        coef_camada = coef_camada[:-1] + '}'
+        coef_camada = coef_camada.replace('[', '{').replace(']', '}')
+
+        f.write(coef_camada + '\n')
+        index += 1
