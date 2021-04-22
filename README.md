@@ -74,7 +74,7 @@ A pasta possui todas versões de bancos de treinamento e testes de um classifica
 
 * Com os pesos da rede treinada em mãos, basta abrir o [código do ESP32](https://github.com/abdalla2427/leitura-tc/tree/master/Documenta%C3%A7%C3%A3o/ESP32AnalogReadTimerwifi_06ago2020), e substituir os novos pesos gerados pelo script em Python no código do microcontrolador.
 
-* Após feita a compilação do novo código do ESP 32, com os pesos ja treinados, e conexão com a rede, basta acessar a rota: https://ip.do.esp.32:5000/events, e teremos uma lista dos ultimos 256 tipos de eventos detectados e quando eles ocorreram.
+* Após feita a compilação do novo código do ESP 32, com os pesos da rede ja treinada, e conexão com a rede local de internet, basta acessar a rota: https://ip.do.esp.32:5000/events, e teremos uma lista dos ultimos 256 tipos de eventos detectados e quando eles ocorreram.
 
 
 ## Configuração do Ambiente
