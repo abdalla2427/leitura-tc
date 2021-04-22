@@ -35,7 +35,7 @@ def pretty_print_matriz_confusao(matrix):
         print('Número de Verdadeiros Positivos da classe {0}: {1}'.format(i, tp))
         print('Número de Falsos Positivos da classe {0}: {1}'.format(i, fp))
 
-entrada_rede = pd.read_csv('./treinamento_algoritmo/entrada_classificador.csv')
+entrada_rede = pd.read_csv('./entrada_classificador.csv')
 teste_rede = pd.read_csv('./teste_classificador.csv')
 
 colunas = entrada_rede.columns.tolist()
