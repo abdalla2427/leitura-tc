@@ -5,8 +5,9 @@ from matplotlib import dates as mpl_dates
 import matplotlib.dates as mdates
 
 
-data = pd.read_csv('data.csv')
-dia_completo = pd.read_csv('dia_completo.csv')
+data = pd.read_csv('saida.csv', delimiter=";")
+print(data)
+dia_completo = pd.read_csv('teste_mic.csv')
 
 hours = mdates.HourLocator(interval = 1)
 h_fmt = mdates.DateFormatter('%H:%M:%S')
@@ -31,11 +32,11 @@ horaEventos2 = []
 for i in range(dimTabela):
     if (tipoEvento[i] == 1):
         horaEventos1.append(horaEvento[i])
-        eventos1.append(tipoEvento[i])
+        eventos1.append(5)
 
     elif (tipoEvento[i] == 2):
         horaEventos2.append(horaEvento[i])
-        eventos2.append(tipoEvento[i])
+        eventos2.append(0)
 
 ax = plt.subplot()
 
@@ -49,8 +50,8 @@ ax.tick_params(axis='x', which='major')
 plt.xticks(rotation=30)
 
 
-ax.scatter(horaEventos1, eventos1, color='red')
-ax.scatter(horaEventos2, eventos2)
+ax.scatter(horaEventos1, eventos1, color='green', marker="s")
+ax.scatter(horaEventos2, eventos2, color="red")
 ax.plot(horaDiaCompleto, valoresRmsDiaCompleto)
 
 # plt.plot_date(horaEvento, tipoEvento, linestyle='solid')
