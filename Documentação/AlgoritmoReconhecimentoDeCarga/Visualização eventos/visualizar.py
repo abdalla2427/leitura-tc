@@ -5,8 +5,10 @@ from matplotlib import dates as mpl_dates
 import matplotlib.dates as mdates
 
 
-data = pd.read_csv('saida.csv', delimiter=";")
-print(data)
+#data = pd.read_csv('data_grafico_2.csv', delimiter=",")
+data = pd.read_csv('data_grafico_1.csv', delimiter=";")
+
+#dia_completo = pd.read_csv('primeiro_evento.csv')
 dia_completo = pd.read_csv('teste_mic.csv')
 
 hours = mdates.HourLocator(interval = 1)
@@ -43,24 +45,32 @@ ax = plt.subplot()
 xfmt = mdates.DateFormatter('%H:%M:%S')
 ax.xaxis.set_major_formatter(xfmt)
 # set ticks every 30 mins 
-ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
+ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=1))
 # set fontsize of ticks
 ax.tick_params(axis='x', which='major')
 # rotate ticks for x axis
 plt.xticks(rotation=30)
 
 
-ax.scatter(horaEventos1, eventos1, color='green', marker="s")
-ax.scatter(horaEventos2, eventos2, color="red")
-ax.plot(horaDiaCompleto, valoresRmsDiaCompleto)
+ligou = ax.scatter(horaEventos1, eventos1, color='black', marker="x", label="teste")
+desligou = ax.scatter(horaEventos2, eventos2, color="black")
+ax.plot(horaDiaCompleto, valoresRmsDiaCompleto, markersize=15)
+
 
 # plt.plot_date(horaEvento, tipoEvento, linestyle='solid')
 
-plt.title('Gráfico RMS')
+plt.title('')
 plt.xlabel('Hora do Evento')
-plt.ylabel('Tipo de Evento')
+plt.ylabel('i_rms(A)')
 
 plt.tight_layout()
+
+plt.legend((ligou, desligou),
+           ('Ligou', 'Desligou'),
+           scatterpoints=1,
+           loc='upper right',
+           ncol=3,
+           fontsize=15)
 plt.show()
 
 
