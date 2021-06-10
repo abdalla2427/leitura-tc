@@ -5,10 +5,10 @@ from matplotlib import dates as mpl_dates
 import matplotlib.dates as mdates
 
 
-#data = pd.read_csv('data_grafico_2.csv', delimiter=",")
+# data = pd.read_csv('data_grafico_2.csv', delimiter=",")
 data = pd.read_csv('data_grafico_1.csv', delimiter=";")
 
-#dia_completo = pd.read_csv('primeiro_evento.csv')
+# dia_completo = pd.read_csv('primeiro_evento.csv')
 dia_completo = pd.read_csv('teste_mic.csv')
 
 hours = mdates.HourLocator(interval = 1)
@@ -60,8 +60,8 @@ ax.plot(horaDiaCompleto, valoresRmsDiaCompleto, markersize=15)
 # plt.plot_date(horaEvento, tipoEvento, linestyle='solid')
 
 plt.title('')
-plt.xlabel('Hora do Evento')
-plt.ylabel('i_rms(A)')
+plt.xlabel('Hora do Evento', fontsize=15)
+plt.ylabel('i_rms(A)', fontsize=15)
 
 plt.tight_layout()
 
