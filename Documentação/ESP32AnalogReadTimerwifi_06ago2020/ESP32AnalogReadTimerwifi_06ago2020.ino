@@ -17,8 +17,13 @@ Lucas Abdalla Menezes e Rainer Zanghi
 //const char* ssid     = "TEE_420A";
 //const char* password = "#L@BTEE#";
 
-const char *ssid = "cafofo2";
-const char *password = "0123456789012";
+//const char *ssid = "cafofo2";
+//const char *password = "0123456789012";
+//
+//const char* ssid     = "ele nao 5g";
+//const char* password = "h24i26d23";
+const char* ssid     = "iPhone de lucas";
+const char* password = "carine123";
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800; //-3h GMT
@@ -571,9 +576,6 @@ void setup()
     delay(1000);
     Serial.print(".");
     //restart if not connected after n retries
-    wifiretries++;
-    if (wifiretries > 10)
-      ESP.restart();
   }
   Serial.println("");
   Serial.println("WiFi connected.");

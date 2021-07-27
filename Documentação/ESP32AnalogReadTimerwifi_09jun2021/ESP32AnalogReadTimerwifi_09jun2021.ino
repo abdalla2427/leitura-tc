@@ -10,12 +10,15 @@ Lucas Abdalla Menezes e Rainer Zanghi
 //#include <ESPAsyncWebServer.h>
 #include <aWOT.h>
 #include "time.h"
-#include <aJSON.h>
+#include <ArduinoJson.h>
+
 
 //const char* ssid     = "GVT-596D";
 //const char* password = "laion123";
 const char* ssid = "VIVOFIBRA-8CDC";
 const char* password = "EAEA7A8CDC";
+//const char* ssid     = "iPhone de lucas";
+//const char* password = "carine123";
 
 //const char* ssid     = "TEE_420A";
 //const char* password = "#L@BTEE#";
@@ -26,7 +29,11 @@ const char* password = "EAEA7A8CDC";
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800; //-3h GMT
 const int daylightOffset_sec = 0;  //3600s if daylight saving time
+const size_t CAMADAS = JSON_ARRAY_SIZE(2);
+const size_t ENTRADAS_BIAS = JSON_ARRAY_SIZE(3);
+const size_t JSON_OB_CAP = JSON_OBJECT_SIZE(100);
 
+StaticJsonDocument<JSON_OB_CAP> doc; 
 bool deveReiniciar = false;
 uint32_t oldfreeheap = 0;
 
@@ -196,6 +203,9 @@ int softMax(float *vetorZ, int tamanhoVetorZ)
 
   return saidaMax;
 }
+
+//teste fun
+
 
 //função que faz a forward propagation de uma camada escondida ou de entrada
 //para uma camada escondida
@@ -547,9 +557,26 @@ void handle_events(Request &req, Response &res)
 void handle_update_weights(Request &req, Response &res)
 {
   res.set("Content-Type", "application/json");
-  aJsonStream stream(&req);
+  String streamTeste = req.readString();
+
+  deserializeJson(doc, streamTeste);
+  JsonObject object = doc.as<JsonObject>();
+  
+  int tamanho = object["teste"].size();
+
+  for(int i = 0; i < tamanho; i++) {
+     int teste = object["teste"][i];
+     Serial.println(teste);
+  }
+    res.status(200);
 }
 
+//callback for GET /handle_current_weights
+//get classifier weigths
+void handle_get_weights(Request &req, Response &res)
+{
+  res.set("Content-Type", "application/json");
+}
 //using time.h tm struct to print time
 //refer to: http://www.cplusplus.com/reference/ctime/tm/
 //and https://randomnerdtutorials.com/esp32-date-time-ntp-client-server-arduino/
@@ -604,6 +631,8 @@ void setup()
   app.get("/adc_data", &handle_adc_data);
   app.get("/events", &handle_events);
   app.post("/AtualizarClassificador", &handle_update_weights);
+  app.get("/PesosAtuais", &handle_get_weights);
+  
   app.use(&notFound);
 
   server.begin();
