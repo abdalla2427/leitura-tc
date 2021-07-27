@@ -48,6 +48,7 @@ Application app;
 #define tamanhoCamada3 8
 #define tamanhoCamada4 5
 #define tamanhoSaidaRede 3
+#define dimensaoCamadasRede 5
 #define debug 1
 #define tamanhoVetorEventosDetectados 256
 #define tamanhotimestamp 3 + 3 + 4 + 1 + 3 + 3 + 3 //"%d/%m/%Y-%H:%M:%S"
@@ -85,6 +86,9 @@ float biasCamada1[tamanhoCamada2] = { 0.58236053, -2.05713332, -0.24978616, -0.5
 float biasCamada2[tamanhoCamada3] = { 0.3217876 , -0.52095973, -0.7227467 , -0.48708937, -0.33317859,-0.07583713, -0.22334892, -1.56304241};
 float biasCamada3[tamanhoCamada4] = {-0.63054077,  0.17083555, -0.65796861,  0.35497908, -0.56029508};
 float biasCamada4[tamanhoSaidaRede] = { 0.33743533, -4.86697777, 4.58513054};
+
+float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
+float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
 
 //pesosParaCamdaX[NohOrigem][NohDestino]
 float pesosParaCamada1[tamanhoJanela][tamanhoCamada1] = {{-0.92620594,  1.01562079, -0.77379216, -2.2714845 , -0.72407906},
@@ -135,6 +139,7 @@ float pesosParaSaida[tamanhoCamada4][tamanhoSaidaRede] = {{ 1.31293312, -3.22789
        { 0.66992455,  0.25933025,  0.13306134},     
        {-0.15978986, -0.04171538,  0.16742682},     
        { 0.68847162,  0.25010245,  0.60942594}};
+
 
 /*
  * Fim definição dos parâmetros da rede
@@ -562,13 +567,12 @@ void handle_update_weights(Request &req, Response &res)
   deserializeJson(doc, streamTeste);
   JsonObject object = doc.as<JsonObject>();
   
-  int tamanho = object["teste"].size();
-
-  for(int i = 0; i < tamanho; i++) {
-     int teste = object["teste"][i];
-     Serial.println(teste);
+  for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+    int dimensaoCamadaAtual = topologiaRede[camadaAtual];
+    JsonArray biasCamadaAtual = object["bias"][camadaAtual].as<JsonArray>();
+    copyArray(biasCamadaAtual, listaBias[camadaAtual], dimensaoCamadaAtual);
   }
-    res.status(200);
+  res.status(200);
 }
 
 //callback for GET /handle_current_weights
@@ -576,6 +580,21 @@ void handle_update_weights(Request &req, Response &res)
 void handle_get_weights(Request &req, Response &res)
 {
   res.set("Content-Type", "application/json");
+  for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+    int dimensaoCamadaAtual = topologiaRede[camadaAtual]; 
+    for(int j= 0; j < dimensaoCamadaAtual ; j++) {
+      Serial.println(listaBias[camadaAtual][j]);
+    }
+  }
+  
+//float biasEntrada[tamanhoCamada1] = { 1.56473463, -2.41900121, -0.71409326, -0.86229673,  0.38022143};
+//float biasCamada1[tamanhoCamada2] = { 0.58236053, -2.05713332, -0.24978616, -0.56665858, -0.2459753,-0.38273451,  2.44016488,  0.54417541};
+//float biasCamada2[tamanhoCamada3] = { 0.3217876 , -0.52095973, -0.7227467 , -0.48708937, -0.33317859,-0.07583713, -0.22334892, -1.56304241};
+//float biasCamada3[tamanhoCamada4] = {-0.63054077,  0.17083555, -0.65796861,  0.35497908, -0.56029508};
+//float biasCamada4[tamanhoSaidaRede] = { 0.33743533, -4.86697777, 4.58513054};
+//
+//float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
+//float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
 }
 //using time.h tm struct to print time
 //refer to: http://www.cplusplus.com/reference/ctime/tm/
@@ -617,7 +636,6 @@ void setup()
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-
   // Init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   printLocalTime();
