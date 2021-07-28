@@ -87,15 +87,14 @@ float biasCamada2[tamanhoCamada3] = { 0.3217876 , -0.52095973, -0.7227467 , -0.4
 float biasCamada3[tamanhoCamada4] = {-0.63054077,  0.17083555, -0.65796861,  0.35497908, -0.56029508};
 float biasCamada4[tamanhoSaidaRede] = { 0.33743533, -4.86697777, 4.58513054};
 
-float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
-float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
-
 //pesosParaCamdaX[NohOrigem][NohDestino]
 float pesosParaCamada1[tamanhoJanela][tamanhoCamada1] = {{-0.92620594,  1.01562079, -0.77379216, -2.2714845 , -0.72407906},
        {-1.69888604,  0.02079684, -0.23906248, -2.798543  , -0.20891169},
        {-0.1817855 , -0.00680469, -0.45748971, -0.10939818, -0.93311538},
        { 0.06559673, -0.00751158,  0.09084824, -0.03260378, -0.73069978},
        { 2.19092162,  2.1987533 , -0.28880788,  2.56751848, -0.02454715}};
+
+float *teste = &pesosParaCamada1[0][0];
 
 float pesosParaCamada2[tamanhoCamada1][tamanhoCamada2] = {{-0.58165555, -0.32874991,  1.02053924,  1.23754336, -0.48618627,        
         -1.55563246,  1.33949388,  1.76026702},     
@@ -139,6 +138,10 @@ float pesosParaSaida[tamanhoCamada4][tamanhoSaidaRede] = {{ 1.31293312, -3.22789
        { 0.66992455,  0.25933025,  0.13306134},     
        {-0.15978986, -0.04171538,  0.16742682},     
        { 0.68847162,  0.25010245,  0.60942594}};
+       
+float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
+float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
+float *listaPesos[dimensaoCamadasRede]={*pesosParaCamada1, *pesosParaCamada2, *pesosParaCamada3, *pesosParaCamada4, *pesosParaSaida};
 
 
 /*
@@ -572,29 +575,46 @@ void handle_update_weights(Request &req, Response &res)
     JsonArray biasCamadaAtual = object["bias"][camadaAtual].as<JsonArray>();
     copyArray(biasCamadaAtual, listaBias[camadaAtual], dimensaoCamadaAtual);
   }
+
   res.status(200);
 }
+
+       
+//float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
+//float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
+//float *listaPesos[dimensaoCamadasRede]={pesosParaCamada1, pesosParaCamada2, pesosParaCamada3, pesosParaCamada4, pesosParaSaida};
+
 
 //callback for GET /handle_current_weights
 //get classifier weigths
 void handle_get_weights(Request &req, Response &res)
 {
+  Serial.println(listaPesos[0][0]);
   res.set("Content-Type", "application/json");
-  for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
-    int dimensaoCamadaAtual = topologiaRede[camadaAtual]; 
-    for(int j= 0; j < dimensaoCamadaAtual ; j++) {
-      Serial.println(listaBias[camadaAtual][j]);
-    }
-  }
+//  for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+//    int dimensaoCamadaAtual = topologiaRede[camadaAtual]; 
+//    for(int j= 0; j < dimensaoCamadaAtual ; j++) {
+//      Serial.println(listaBias[camadaAtual][j]);
+//    }
+//  }
+
+Serial.println("comecou");
+//    for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+//    if (camadaAtual < (dimensaoCamadasRede + 1)) {
+      int camadaAtual = 0;
+      int dimensaoCamadaAtual = 5;
+      int dimensaoProximaCamada = topologiaRede[0];
   
-//float biasEntrada[tamanhoCamada1] = { 1.56473463, -2.41900121, -0.71409326, -0.86229673,  0.38022143};
-//float biasCamada1[tamanhoCamada2] = { 0.58236053, -2.05713332, -0.24978616, -0.56665858, -0.2459753,-0.38273451,  2.44016488,  0.54417541};
-//float biasCamada2[tamanhoCamada3] = { 0.3217876 , -0.52095973, -0.7227467 , -0.48708937, -0.33317859,-0.07583713, -0.22334892, -1.56304241};
-//float biasCamada3[tamanhoCamada4] = {-0.63054077,  0.17083555, -0.65796861,  0.35497908, -0.56029508};
-//float biasCamada4[tamanhoSaidaRede] = { 0.33743533, -4.86697777, 4.58513054};
-//
-//float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
-//float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
+      for (int noDe = 0; noDe < dimensaoCamadaAtual; noDe++) {
+        for (int noPara = 0; noPara < dimensaoProximaCamada; noPara++) {
+             Serial.print(*(teste + (dimensaoCamadaAtual * noDe) + noPara), 3);
+             Serial.print(",");
+        }
+        Serial.println("");
+      }
+//    }
+//  }
+  Serial.println("cabou");
 }
 //using time.h tm struct to print time
 //refer to: http://www.cplusplus.com/reference/ctime/tm/
