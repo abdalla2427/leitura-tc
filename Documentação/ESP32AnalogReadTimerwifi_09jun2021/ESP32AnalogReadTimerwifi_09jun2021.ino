@@ -1,7 +1,7 @@
 /*
-Sketch para leitura de sensor de corrente SCT013 em valor rms, usando ESP32
-UFF - PIBIC - 2019-2020
-Lucas Abdalla Menezes e Rainer Zanghi
+  Sketch para leitura de sensor de corrente SCT013 em valor rms, usando ESP32
+  UFF - PIBIC - 2019-2020
+  Lucas Abdalla Menezes e Rainer Zanghi
 */
 
 //TODO: incluir vetor para armazenar últimos valores rms lidos - qual periodicidade?
@@ -33,7 +33,7 @@ const size_t CAMADAS = JSON_ARRAY_SIZE(2);
 const size_t ENTRADAS_BIAS = JSON_ARRAY_SIZE(3);
 const size_t JSON_OB_CAP = JSON_OBJECT_SIZE(100);
 
-StaticJsonDocument<JSON_OB_CAP> doc; 
+StaticJsonDocument<JSON_OB_CAP> doc;
 bool deveReiniciar = false;
 uint32_t oldfreeheap = 0;
 
@@ -49,6 +49,7 @@ Application app;
 #define tamanhoCamada4 5
 #define tamanhoSaidaRede 3
 #define dimensaoCamadasRede 5
+#define tamanhoMaximoCamdas 10
 #define debug 1
 #define tamanhoVetorEventosDetectados 256
 #define tamanhotimestamp 3 + 3 + 4 + 1 + 3 + 3 + 3 //"%d/%m/%Y-%H:%M:%S"
@@ -71,86 +72,22 @@ volatile uint32_t vetorEventosDetectadosIdx = 0;
 volatile uint32_t vetorEventosDetectados[tamanhoVetorEventosDetectados] = {0};
 volatile uint32_t tempoVetorEventosDetectados[tamanhoVetorEventosDetectados] = {0};
 volatile int rmsCalculados = 0;
+
 /*
- * Parâmetros da rede*
+   Parâmetros da rede
 */
-float entradaRede[tamanhoJanela] = {0};
-float camada1[tamanhoCamada1] = {0};
-float camada2[tamanhoCamada2] = {0};
-float camada3[tamanhoCamada3] = {0};
-float camada4[tamanhoCamada4] = {0};
-float saidaRede[tamanhoSaidaRede] = {0};
-
-float biasEntrada[tamanhoCamada1] = { 1.56473463, -2.41900121, -0.71409326, -0.86229673,  0.38022143};
-float biasCamada1[tamanhoCamada2] = { 0.58236053, -2.05713332, -0.24978616, -0.56665858, -0.2459753,-0.38273451,  2.44016488,  0.54417541};
-float biasCamada2[tamanhoCamada3] = { 0.3217876 , -0.52095973, -0.7227467 , -0.48708937, -0.33317859,-0.07583713, -0.22334892, -1.56304241};
-float biasCamada3[tamanhoCamada4] = {-0.63054077,  0.17083555, -0.65796861,  0.35497908, -0.56029508};
-float biasCamada4[tamanhoSaidaRede] = { 0.33743533, -4.86697777, 4.58513054};
-
-//pesosParaCamdaX[NohOrigem][NohDestino]
-float pesosParaCamada1[tamanhoJanela][tamanhoCamada1] = {{-0.92620594,  1.01562079, -0.77379216, -2.2714845 , -0.72407906},
-       {-1.69888604,  0.02079684, -0.23906248, -2.798543  , -0.20891169},
-       {-0.1817855 , -0.00680469, -0.45748971, -0.10939818, -0.93311538},
-       { 0.06559673, -0.00751158,  0.09084824, -0.03260378, -0.73069978},
-       { 2.19092162,  2.1987533 , -0.28880788,  2.56751848, -0.02454715}};
-
-float *teste = &pesosParaCamada1[0][0];
-
-float pesosParaCamada2[tamanhoCamada1][tamanhoCamada2] = {{-0.58165555, -0.32874991,  1.02053924,  1.23754336, -0.48618627,        
-        -1.55563246,  1.33949388,  1.76026702},     
-       {-0.57410005,  0.99924976,  0.69339302,  0.20263727, -0.67853892,
-         0.69275031, -1.16808397,  0.30713057},     
-       { 0.55472225, -0.28019599, -0.28812295, -0.50228497, -0.6525227 ,
-         0.24279281, -0.39150284, -0.31830131},     
-       {-0.01147117, -1.0053759 ,  0.5381578 , -0.96510053,  0.1158694 ,
-         1.12802715, -2.08879119, -1.74391513},     
-       { 0.27031404, -0.14256809, -0.56552498, -0.00870312,  0.18379136,
-         0.05890488,  0.41171845,  0.14061717}};
-
-float pesosParaCamada3[tamanhoCamada2][tamanhoCamada3] = {{ 0.32205287,  0.26704306,  0.46907189,  0.1513442 ,  0.32550585,
-        -0.00847013, -0.26782039,  0.48446685},     
-       {-0.96319019,  0.56884929, -0.55806996,  0.14140462, -0.47145568,
-         2.1888254 ,  0.59354789,  0.15580696},     
-       { 0.33312346, -0.34630749,  1.39014693,  0.03529309, -0.68678346,
-         0.27161496,  0.2474282 ,  0.73469791},     
-       { 1.24561535, -0.19949282,  1.03855829,  0.12101474, -0.63150929,
-         0.16985733,  0.26185992, -0.80840438},     
-       {-0.38010276, -0.44405554,  0.45572587,  0.24085822, -0.53110755,
-         0.19784653,  0.28929097,  0.51767536},     
-       {-0.68273969, -0.45979945, -1.20618854, -0.58302714, -0.57723256,
-         0.41417199,  1.0072964 ,  1.58317993},     
-       {-0.35863299,  0.24245244, -1.84819275, -0.27033584,  0.10908209,
-         2.35163947,  0.27009599, -0.61970653},     
-       { 0.80301257, -0.40702173,  1.68166481, -0.15898675,  0.34381733,
-         1.26716527,  0.08410271, -1.34704735}};
-
-float pesosParaCamada4[tamanhoCamada3][tamanhoCamada4] = {{ 0.28336933,  0.22631087, -0.3610096 , -0.59634947, -0.33627689},
-       { 0.33425516, -0.40239042,  0.11045677,  0.63811408,  0.47086665},
-       {-3.25513739, -0.5225701 , -0.35081541,  0.19016811, -0.46941526},
-       {-0.64678997, -0.58668935, -0.01853831,  0.14435626,  0.0934749 },
-       {-0.33974474,  0.64418979,  0.10826465, -0.16272415,  0.06916892},
-       { 0.64053085,  2.23584397, -1.19202   , -0.64495404, -1.12660483},
-       { 0.40715633, -0.00543783, -0.18775376, -0.59229383, -0.49741797},
-       { 1.08569654, -1.65224705, -0.02805037,  0.0334932 ,  0.57664293}};
-
-float pesosParaSaida[tamanhoCamada4][tamanhoSaidaRede] = {{ 1.31293312, -3.22789441,  1.36164851},
-       { 0.66059888,  0.94020811,  0.15748059},     
-       { 0.66992455,  0.25933025,  0.13306134},     
-       {-0.15978986, -0.04171538,  0.16742682},     
-       { 0.68847162,  0.25010245,  0.60942594}};
-       
-float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
 float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
-float *listaPesos[dimensaoCamadasRede]={*pesosParaCamada1, *pesosParaCamada2, *pesosParaCamada3, *pesosParaCamada4, *pesosParaSaida};
-
-
-/*
- * Fim definição dos parâmetros da rede
- */
+float ***listaPesos = new float**[tamanhoMaximoCamdas];
+float **listaBias = new float*[dimensaoCamadasRede];
+float **valorDosNos = new float*[dimensaoCamadasRede + 1];
 
 /*
- * Funções utilizadas pela rede
- */
+   Fim definição dos parâmetros da rede
+*/
+
+/*
+   Funções utilizadas pela rede
+*/
 float maximo(float a, float b)
 {
   return ((a >= b) ? a : b);
@@ -217,7 +154,7 @@ int softMax(float *vetorZ, int tamanhoVetorZ)
 
 //função que faz a forward propagation de uma camada escondida ou de entrada
 //para uma camada escondida
-int propagarEntradaParaProximaCamada5(float *entrada, int tamanhoEntrada, float *saida, int tamanhoSaida, float pesos[][5], float biasRede[])
+int propagarEntradaParaProximaCamada(float *entrada, int tamanhoEntrada, float *saida, int tamanhoSaida, float **pesos, float biasRede[])
 {
   int i;
   int j;
@@ -243,36 +180,9 @@ int propagarEntradaParaProximaCamada5(float *entrada, int tamanhoEntrada, float 
   return 0;
 }
 
-//função que faz a forward propagation de uma camada escondida ou de entrada
-//para uma camada escondida
-int propagarEntradaParaProximaCamada8(float *entrada, int tamanhoEntrada, float *saida, int tamanhoSaida, float pesos[][8], float biasRede[])
-{
-  int i;
-  int j;
-  float auxEntrada;
-  float auxPesos;
-  for (i = 0; i < tamanhoEntrada; i++)
-  {
-    for (j = 0; j < tamanhoSaida; j++)
-    {
-      auxEntrada = entrada[i];
-      auxPesos = pesos[i][j];
-      saida[j] += auxEntrada * auxPesos;
-    }
-  }
-
-  for (i = 0; i < tamanhoSaida; i++)
-  {
-    saida[i] = reluFunction(saida[i] + biasRede[i]);
-    // printf("%f ", saida[i]);
-  }
-  //printf("\n");
-
-  return 0;
-}
 
 //função que faz a forward propagation da última camada escondida para a saída
-int propagarEntradaParaSaida(float *entrada, int tamanhoEntrada, float *saida, int tamanhoSaida, float pesos[][tamanhoSaidaRede], float biasRede[])
+int propagarEntradaParaSaida(float *entrada, int tamanhoEntrada, float *saida, int tamanhoSaida, float **pesos, float biasRede[])
 {
   int i;
   int j;
@@ -298,8 +208,8 @@ int propagarEntradaParaSaida(float *entrada, int tamanhoEntrada, float *saida, i
 }
 
 /*
- * Fim definição de funções utilizadas pela rede
- */
+   Fim definição de funções utilizadas pela rede
+*/
 
 //timer0 callback - ADC sampling timer
 void IRAM_ATTR onTimer()
@@ -353,6 +263,7 @@ float calcularRms(volatile uint32_t arr[])
   //generalizing - number of samples is (max-min)
   return sqrt(square / (max - min));
 }
+
 
 //callback for all others
 void notFound(Request &req, Response &res)
@@ -569,51 +480,41 @@ void handle_update_weights(Request &req, Response &res)
 
   deserializeJson(doc, streamTeste);
   JsonObject object = doc.as<JsonObject>();
-  
-  for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+
+  for (int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
     int dimensaoCamadaAtual = topologiaRede[camadaAtual];
     JsonArray biasCamadaAtual = object["bias"][camadaAtual].as<JsonArray>();
     copyArray(biasCamadaAtual, listaBias[camadaAtual], dimensaoCamadaAtual);
   }
 
+  int camadaEntrada = tamanhoJanela;
+  for (int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+    int dimensaoProximaCamada = topologiaRede[camadaAtual];
+    for (int noDe = 0; noDe < camadaEntrada; noDe++) {
+       JsonArray coefsCamdaAtual = object["coefs"][camadaAtual][noDe].as<JsonArray>();
+       copyArray(coefsCamdaAtual, listaPesos[camadaAtual][noDe], dimensaoProximaCamada);
+    }
+    camadaEntrada = dimensaoProximaCamada;
+  }
+  
   res.status(200);
 }
-
-       
-//float *listaBias[dimensaoCamadasRede]={biasEntrada, biasCamada1, biasCamada2, biasCamada3, biasCamada4};
-//float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
-//float *listaPesos[dimensaoCamadasRede]={pesosParaCamada1, pesosParaCamada2, pesosParaCamada3, pesosParaCamada4, pesosParaSaida};
-
 
 //callback for GET /handle_current_weights
 //get classifier weigths
 void handle_get_weights(Request &req, Response &res)
 {
-  Serial.println(listaPesos[0][0]);
-  res.set("Content-Type", "application/json");
-//  for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
-//    int dimensaoCamadaAtual = topologiaRede[camadaAtual]; 
-//    for(int j= 0; j < dimensaoCamadaAtual ; j++) {
-//      Serial.println(listaBias[camadaAtual][j]);
-//    }
-//  }
+    Serial.println("comecou");
 
-Serial.println("comecou");
-//    for(int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
-//    if (camadaAtual < (dimensaoCamadasRede + 1)) {
-      int camadaAtual = 0;
-      int dimensaoCamadaAtual = 5;
-      int dimensaoProximaCamada = topologiaRede[0];
-  
-      for (int noDe = 0; noDe < dimensaoCamadaAtual; noDe++) {
-        for (int noPara = 0; noPara < dimensaoProximaCamada; noPara++) {
-             Serial.print(*(teste + (dimensaoCamadaAtual * noDe) + noPara), 3);
-             Serial.print(",");
-        }
-        Serial.println("");
-      }
-//    }
-//  }
+  for(int i = 0; i<tamanhoMaximoCamdas; i++){
+     for(int j = 0; j<tamanhoMaximoCamdas; j++){
+         for(int k = 0; k<tamanhoMaximoCamdas;k++){
+            Serial.print(listaPesos[i][j][k]);
+         }
+            Serial.println("");
+     }
+  }
+  res.set("Content-Type", "application/json");
   Serial.println("cabou");
 }
 //using time.h tm struct to print time
@@ -656,6 +557,28 @@ void setup()
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  
+  for(int i = 0; i<tamanhoMaximoCamdas; i++){
+     listaPesos[i] = new float*[tamanhoMaximoCamdas];
+     for(int j = 0; j<tamanhoMaximoCamdas; j++){
+         listaPesos[i][j] = new float[tamanhoMaximoCamdas];
+         for(int k = 0; k<tamanhoMaximoCamdas;k++){
+            listaPesos[i][j][k] = 0;
+         }
+     }
+  }
+  
+  int camadaAtualRede = tamanhoJanela;
+  for(int i = 0; i < dimensaoCamadasRede ; i++) {
+    valorDosNos[i] =  new float[camadaAtualRede];
+    camadaAtualRede = topologiaRede[i];
+  }
+
+  for(int i = 0; i < dimensaoCamadasRede ; i++) {
+    camadaAtualRede = topologiaRede[i];
+    listaBias[i] =  new float[camadaAtualRede];
+  }
+
   // Init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   printLocalTime();
@@ -670,7 +593,7 @@ void setup()
   app.get("/events", &handle_events);
   app.post("/AtualizarClassificador", &handle_update_weights);
   app.get("/PesosAtuais", &handle_get_weights);
-  
+
   app.use(&notFound);
 
   server.begin();
@@ -706,6 +629,7 @@ void setup()
   timerAlarmWrite(timer1, 500000, true);
   // Start an alarm
   timerAlarmEnable(timer1);
+  Serial.println("passou do setup");
 }
 
 void loop()
@@ -760,21 +684,24 @@ void loop()
       {
         if (i < (tamanhoJanela - 1))
         {
-          entradaRede[i] = entradaRede[i + 1];
+          listaPesos[0][0][i] = listaPesos[0][0][i + 1];
         }
         else
         {
-          entradaRede[i] = i_rms_data[i_rms_data_idx];
+          listaPesos[0][0][i] = i_rms_data[i_rms_data_idx];
         }
       }
       //run classifier after tamanhoJanela rms samples
       if (rmsCalculados >= tamanhoJanela)
       {
-        propagarEntradaParaProximaCamada5(entradaRede, tamanhoJanela, camada1, tamanhoCamada1, pesosParaCamada1, biasEntrada);
-        propagarEntradaParaProximaCamada8(camada1, tamanhoCamada1, camada2, tamanhoCamada2, pesosParaCamada2, biasCamada1);
-        propagarEntradaParaProximaCamada8(camada2, tamanhoCamada2, camada3, tamanhoCamada3, pesosParaCamada3, biasCamada2);
-        propagarEntradaParaProximaCamada5(camada3, tamanhoCamada3, camada4, tamanhoCamada4, pesosParaCamada4, biasCamada3);
-        resultadoclassificador = propagarEntradaParaSaida(camada4, tamanhoCamada4, saidaRede, tamanhoSaidaRede, pesosParaSaida, biasCamada4);
+        int camadaAtualRede = tamanhoJanela;
+        for(int i = 0; i < dimensaoCamadasRede - 1; i++) {
+          int proximaCamadaRede = topologiaRede[i];
+          propagarEntradaParaProximaCamada(valorDosNos[i], camadaAtualRede, valorDosNos[i + 1], proximaCamadaRede, listaPesos[i], listaBias[i]);
+          camadaAtualRede = proximaCamadaRede;
+        }
+        resultadoclassificador = propagarEntradaParaSaida(valorDosNos[4], tamanhoCamada4, valorDosNos[5], tamanhoSaidaRede, listaPesos[4], listaBias[4]);
+        
         //só registra nos eventos as classes diferentes de zero
         if (resultadoclassificador > 0)
         {
@@ -788,46 +715,34 @@ void loop()
         }
 
         //garante que os neurônios são inicializados antes de uma nova classificação
-        for (int i = 0; i < tamanhoCamada1; i++)
-        {
-          camada1[i] = 0;
-        }
-        for (int i = 0; i < tamanhoCamada2; i++)
-        {
-          camada2[i] = 0;
-        }
-        for (int i = 0; i < tamanhoCamada3; i++)
-        {
-          camada3[i] = 0;
-        }
-        for (int i = 0; i < tamanhoCamada4; i++)
-        {
-          camada4[i] = 0;
-        }
-        for (int i = 0; i < tamanhoSaidaRede; i++)
-        {
-          saidaRede[i] = 0;
+        camadaAtualRede = tamanhoJanela;
+        for(int i = 0; i < dimensaoCamadasRede; i++) {
+          for(int j = 0; j < camadaAtualRede; j ++)
+            {
+              valorDosNos[i][j] = 0;
+            }
+          camadaAtualRede = topologiaRede[i];
         }
       }
-        else rmsCalculados++;
-        if (vetorEventosDetectadosIdx >= tamanhoVetorEventosDetectados)
-          vetorEventosDetectadosIdx = 0;
-        i_rms_data_idx++;
-        if (i_rms_data_idx >= I_RMS_VEC_SIZE)
-          i_rms_data_idx = 0;
-        //wifi check counter increases every rms sample
-        wificheckcount++;
-      }
+      else rmsCalculados++;
+      if (vetorEventosDetectadosIdx >= tamanhoVetorEventosDetectados)
+        vetorEventosDetectadosIdx = 0;
+      i_rms_data_idx++;
+      if (i_rms_data_idx >= I_RMS_VEC_SIZE)
+        i_rms_data_idx = 0;
+      //wifi check counter increases every rms sample
+      wificheckcount++;
     }
-    //verify wifi connection and reboot
-    //allow half buffer to be filled before checking
-    if (wificheckcount > (I_RMS_VEC_SIZE / 2))
+  }
+  //verify wifi connection and reboot
+  //allow half buffer to be filled before checking
+  if (wificheckcount > (I_RMS_VEC_SIZE / 2))
+  {
+    wificheckcount = 0;
+    int wifistatus = WL_CONNECTED;
+    wifistatus = WiFi.status();
+    switch (wifistatus)
     {
-      wificheckcount = 0;
-      int wifistatus = WL_CONNECTED;
-      wifistatus = WiFi.status();
-      switch (wifistatus)
-      {
       case WL_NO_SHIELD:
         Serial.println("WL_NO_SHIELD");
         break;
@@ -854,20 +769,20 @@ void loop()
         break;
       default:
         Serial.println(wifistatus);
-      }
-      if (wifistatus != WL_CONNECTED)
-        deveReiniciar = true;
     }
-    //webserver code to process a connected client aWOT
-    WiFiClient client = server.available();
-
-    if (client.connected())
-    {
-      app.process(&client);
-    }
-
-    if (deveReiniciar)
-    {
-      ESP.restart();
-    }
+    if (wifistatus != WL_CONNECTED)
+      deveReiniciar = true;
   }
+  //webserver code to process a connected client aWOT
+  WiFiClient client = server.available();
+
+  if (client.connected())
+  {
+    app.process(&client);
+  }
+
+  if (deveReiniciar)
+  {
+    ESP.restart();
+  }
+}
