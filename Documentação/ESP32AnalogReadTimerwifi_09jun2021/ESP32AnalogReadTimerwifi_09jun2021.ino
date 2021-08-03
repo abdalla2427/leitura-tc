@@ -31,7 +31,7 @@ const long gmtOffset_sec = -10800; //-3h GMT
 const int daylightOffset_sec = 0;  //3600s if daylight saving time
 const size_t CAMADAS = JSON_ARRAY_SIZE(2);
 const size_t ENTRADAS_BIAS = JSON_ARRAY_SIZE(3);
-const size_t JSON_OB_CAP = JSON_OBJECT_SIZE(100);
+const size_t JSON_OB_CAP = JSON_OBJECT_SIZE(1000);
 
 StaticJsonDocument<JSON_OB_CAP> doc;
 bool deveReiniciar = false;
@@ -629,7 +629,6 @@ void setup()
   timerAlarmWrite(timer1, 500000, true);
   // Start an alarm
   timerAlarmEnable(timer1);
-  Serial.println("passou do setup");
 }
 
 void loop()
@@ -684,18 +683,18 @@ void loop()
       {
         if (i < (tamanhoJanela - 1))
         {
-          listaPesos[0][0][i] = listaPesos[0][0][i + 1];
+          valorDosNos[0][i] = valorDosNos[0][i + 1];
         }
         else
         {
-          listaPesos[0][0][i] = i_rms_data[i_rms_data_idx];
+          valorDosNos[0][i] = i_rms_data[i_rms_data_idx];
         }
       }
       //run classifier after tamanhoJanela rms samples
       if (rmsCalculados >= tamanhoJanela)
       {
         int camadaAtualRede = tamanhoJanela;
-        for(int i = 0; i < dimensaoCamadasRede - 1; i++) {
+        for(int i = 0; i < dimensaoCamadasRede; i++) {
           int proximaCamadaRede = topologiaRede[i];
           propagarEntradaParaProximaCamada(valorDosNos[i], camadaAtualRede, valorDosNos[i + 1], proximaCamadaRede, listaPesos[i], listaBias[i]);
           camadaAtualRede = proximaCamadaRede;
