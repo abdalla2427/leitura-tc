@@ -7,26 +7,25 @@
 //TODO: incluir vetor para armazenar últimos valores rms lidos - qual periodicidade?
 
 #include <WiFi.h>
-//#include <ESPAsyncWebServer.h>
 #include <aWOT.h>
 #include "time.h"
 #include <ArduinoJson.h>
 
-const char* ssid = "VIVOFIBRA-8CDC";
-const char* password = "EAEA7A8CDC";
+ const char* ssid = "VIVOFIBRA-8CDC";
+ const char* password = "EAEA7A8CDC";
+
+//  const char* ssid = "NET_2G41237E";
+//  const char* password = "B341237E";
 
 //const char* ssid     = "ele nao ";
 //const char* password = "h24i26d23";
 
+//const char* ssid     = "Laura";
+//const char* password = "helena1997";
+
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800; //-3h GMT
 const int daylightOffset_sec = 0;  //3600s if daylight saving time
-const size_t CAMADAS = JSON_ARRAY_SIZE(2);
-const size_t ENTRADAS_BIAS = JSON_ARRAY_SIZE(3);
-const size_t JSON_OB_CAP = JSON_OBJECT_SIZE(1000);
-float CONSUMO_TOTAL = 0.00;
-
-StaticJsonDocument<JSON_OB_CAP> doc;
 bool deveReiniciar = false;
 uint32_t oldfreeheap = 0;
 
@@ -42,7 +41,7 @@ Application app;
 #define tamanhoCamada4 5
 #define tamanhoSaidaRede 3
 #define dimensaoCamadasRede 5
-#define tamanhoMaximoCamdas 10
+#define tamanhoMaximoCamdas 8
 #define debug 1
 #define tamanhoVetorEventosDetectados 256
 #define tamanhotimestamp 3 + 3 + 4 + 1 + 3 + 3 + 3 //"%d/%m/%Y-%H:%M:%S"
@@ -52,6 +51,7 @@ hw_timer_t *timer1 = NULL;
 volatile SemaphoreHandle_t timerSemaphore;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile DRAM_ATTR float i_rms;
+volatile DRAM_ATTR float CONSUMO_TOTAL = 0.00;
 volatile DRAM_ATTR float i_rms_data[I_RMS_VEC_SIZE] = {0};
 volatile DRAM_ATTR uint32_t i_rms_data_idx = 0;
 volatile DRAM_ATTR uint32_t i_rms_data_idx_anterior = 0;
@@ -63,18 +63,20 @@ volatile uint32_t buffer_sampletime_us[ADC_SAMPLES] = {0};
 volatile uint32_t timer0_t = 80;
 volatile uint32_t wificheckcount = 0;
 volatile uint32_t vetorEventosDetectadosIdx = 0;
-volatile uint32_t vetorEventosDetectados[tamanhoVetorEventosDetectados] = {0};
-volatile uint32_t tempoVetorEventosDetectados[tamanhoVetorEventosDetectados] = {0};
-volatile float variacaoDeCorrenteNoEvento[tamanhoVetorEventosDetectados] = {0};
+volatile DRAM_ATTR uint32_t vetorEventosDetectados[tamanhoVetorEventosDetectados] = {0};
+volatile DRAM_ATTR uint32_t tempoVetorEventosDetectados[tamanhoVetorEventosDetectados] = {0};
+volatile DRAM_ATTR float variacaoDeCorrenteNoEvento[tamanhoVetorEventosDetectados] = {0};
+volatile DRAM_ATTR float capturasRealizadas[tamanhoVetorEventosDetectados] = {0};
 volatile int rmsCalculados = 0;
-
+bool estadoAtualCaptura = false;
 /*
    Parâmetros da rede
 */
 float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
-float ***listaPesos = new float**[tamanhoMaximoCamdas];
-float **listaBias = new float*[dimensaoCamadasRede];
-float **valorDosNos = new float*[dimensaoCamadasRede + 1];
+DRAM_ATTR float ***listaPesos = new float**[tamanhoMaximoCamdas];
+DRAM_ATTR float **listaBias = new float*[dimensaoCamadasRede];
+DRAM_ATTR float **valorDosNos = new float*[dimensaoCamadasRede + 1];
+int indexCapturas = 0;
 
 /*
    Fim definição dos parâmetros da rede
@@ -124,7 +126,7 @@ int softMax(float *vetorZ, int tamanhoVetorZ)
   {
     soma += expf(vetorZ[i]);
   }
-
+  
   for (i = 0; i < tamanhoVetorZ; i++)
   {
     saida[i] = (expf(vetorZ[i])) / (soma);
@@ -168,9 +170,7 @@ int propagarEntradaParaProximaCamada(float *entrada, int tamanhoEntrada, float *
   for (i = 0; i < tamanhoSaida; i++)
   {
     saida[i] = reluFunction(saida[i] + biasRede[i]);
-    // printf("%f ", saida[i]);
   }
-  //printf("\n");
 
   return 0;
 }
@@ -196,7 +196,6 @@ int propagarEntradaParaSaida(float *entrada, int tamanhoEntrada, float *saida, i
   for (i = 0; i < tamanhoSaida; i++)
   {
     saida[i] = saida[i] + biasRede[i];
-    //printf("%f ", saida[i])
   }
 
   return softMax(saida, tamanhoSaida);
@@ -256,6 +255,7 @@ float calcularRms(volatile uint32_t arr[])
   }
   //use int ((1/f)/timer0_t) = 167 samples from ADC_SAMPLES for 1 period
   //generalizing - number of samples is (max-min)
+
   return sqrt(square / (max - min));
 }
 
@@ -273,47 +273,6 @@ void notFound(Request &req, Response &res)
   res.print("Not found.");
 }
 
-//callback for GET /
-//send all values
-void handle_alldata(Request &req, Response &res)
-{
-  int tamanhoVetorEnvio = (6 * ADC_SAMPLES) + 2 + (12 * ADC_SAMPLES) + 8 + 1;
-  char envio[tamanhoVetorEnvio] = {'\0'};
-  int posicaoPonteiro = 0;
-  int retorno = 0;
-
-  //append adc samples vector (in counts)
-  for (int i = 0; i < ADC_SAMPLES; i++)
-  {
-    if (i < (ADC_SAMPLES - 1))
-      retorno = snprintf(&envio[posicaoPonteiro], 6, "%d,", buffer_adc_data[i]);
-    else
-      retorno = snprintf(&envio[posicaoPonteiro], 5, "%d", buffer_adc_data[i]);
-
-    posicaoPonteiro += retorno;
-  }
-  //add separator between vectors
-  retorno = snprintf(&envio[posicaoPonteiro], 3, "%s", "!!");
-  posicaoPonteiro += retorno;
-
-  //append sample time vector (in us)
-  for (int i = 0; i < ADC_SAMPLES; i++)
-  {
-    //append sample timestamp referenced to the first sample
-    if (i < (ADC_SAMPLES - 1))
-      retorno = snprintf(&envio[posicaoPonteiro], 12, "%d,", buffer_sampletime_us[i]);
-    else
-      retorno = snprintf(&envio[posicaoPonteiro], 11, "%d", buffer_sampletime_us[i]);
-
-    posicaoPonteiro += retorno;
-  }
-  //append rms current (in A)
-  retorno = snprintf(&envio[posicaoPonteiro], 8, " %.3f", i_rms);
-  //send string to http client as text/plain
-  res.set("Content-Type", "text/plain");
-  res.status(200);
-  res.print(envio);
-}
 
 //callback for GET /freeheap
 //send old and new ESP.freeheap result in bytes only
@@ -333,108 +292,11 @@ void handle_freeheap(Request &req, Response &res)
   res.print(envio);
 }
 
-//callback for GET /i_rms_data
-//send i_rms vector and last value index
-void handle_i_rms_data(Request &req, Response &res)
-{
-  int tamanhoVetorEnvio = 10 * I_RMS_VEC_SIZE + 5;
-  char envio[tamanhoVetorEnvio] = {'\0'};
-  int posicaoPonteiro = 0;
-
-  //append rms current vector (in A)
-  //arranging the cyclic vector in chronological order
-  int retorno;
-  for (int i = i_rms_data_idx; i < I_RMS_VEC_SIZE; i++)
-  {
-    if (i != (i_rms_data_idx - 1))
-      retorno = snprintf(&envio[posicaoPonteiro], 10, "%.3f,", i_rms_data[i]);
-    else
-      retorno = snprintf(&envio[posicaoPonteiro], 9, "%.3f", i_rms_data[i]);
-
-    posicaoPonteiro += retorno;
-  }
-  if (i_rms_data_idx)
-    for (int i = 0; i < i_rms_data_idx; i++)
-    {
-      if (i != (i_rms_data_idx - 1))
-        retorno = snprintf(&envio[posicaoPonteiro], 10, "%.3f,", i_rms_data[i]);
-      else
-        retorno = snprintf(&envio[posicaoPonteiro], 9, "%.3f", i_rms_data[i]);
-
-      posicaoPonteiro += retorno;
-    }
-
-  snprintf(&envio[posicaoPonteiro], 5, " %d", i_rms_data_idx);
-
-  //send char vector to http client as text/plain
-  res.set("Content-Type", "text/plain");
-  res.status(200);
-  res.print(envio);
-}
-
-//callback for GET /i_rms
-//send i_rms only
-void handle_i_rms(Request &req, Response &res)
-{
-  int tamanhoVetorEnvio = 9;
-  char envio[tamanhoVetorEnvio] = {'\0'};
-  int posicaoPonteiro = 0;
-  snprintf(&envio[posicaoPonteiro], 9, "%.3f", i_rms);
-  //append rms current (in A)
-  //send string to http client as text/plain
-  res.set("Content-Type", "text/plain");
-  res.status(200);
-  res.print(envio);
-}
-
-//callback for GET /adc_data
-//send only adc values used on rms calculation
-void handle_adc_data(Request &req, Response &res)
-{
-  int min = int(ADC_SAMPLES / 2) - int((1 / (timer0_t * 60 * .000001)) / 2);
-  int max = min + int(1 / (timer0_t * 60 * .000001));
-
-  int tamanhoVetorEnvio = (6 * (max - min)) + 2 + ((12 * (max - min)) + 10 + 1);
-  char envio[tamanhoVetorEnvio] = {'\0'};
-  int posicaoPonteiro = 0;
-  int retorno = 0;
-
-  //append adc samples vector (in counts)
-  for (int i = min; i < max; i++)
-  {
-    if (i < (max - 1))
-      retorno = snprintf(&envio[posicaoPonteiro], 6, "%d,", buffer_adc_data[i]);
-    else
-      retorno = snprintf(&envio[posicaoPonteiro], 5, "%d", buffer_adc_data[i]);
-
-    posicaoPonteiro += retorno;
-  }
-  //add separator between vectors
-  retorno = snprintf(&envio[posicaoPonteiro], 3, "%s", "!!");
-  posicaoPonteiro += retorno;
-
-  //append sample time vector (in us)
-  for (int i = min; i < max; i++)
-  {
-    if (i < (max - 1))
-      retorno = snprintf(&envio[posicaoPonteiro], 12, "%d,", buffer_sampletime_us[i]);
-    else
-      retorno = snprintf(&envio[posicaoPonteiro], 11, "%d", buffer_sampletime_us[i]);
-    posicaoPonteiro += retorno;
-  }
-  //append rms current (in A)
-  retorno = snprintf(&envio[posicaoPonteiro], 10, " %.3f", i_rms);
-  //send string to http client as text/plain
-  res.set("Content-Type", "text/plain");
-  res.status(200);
-  res.print(envio);
-}
-
 //callback for GET /events
 //send all event log
 void handle_events(Request &req, Response &res)
 {
-  DynamicJsonDocument objeto(2048);  
+  StaticJsonDocument<1024> objeto;  
 
   JsonArray vetorVariacao = objeto.createNestedArray("variacao");
   JsonArray vetorEvento = objeto.createNestedArray("evento");
@@ -457,21 +319,6 @@ void handle_events(Request &req, Response &res)
   res.print(json);
 }
 
-void handle_consumo_total(Request &req, Response &res)
-{
-  DynamicJsonDocument documento(2048);
-
-  documento["consumoTotal"] = CONSUMO_TOTAL;
-  JsonObject objeto =  documento.as<JsonObject>();
-    
-  String json;
-  serializeJson(objeto, json);
-  
-  res.set("Content-Type", "application/json");
-  res.status(200);
-  res.print(json);
-}
-
 /*
 TODO: Implementar o tratamento de erro do JSONdeserialize
 garantindo a integridade dos dados.
@@ -483,6 +330,7 @@ void handle_update_weights(Request &req, Response &res)
 {
   res.set("Content-Type", "application/json");
   String streamTeste = req.readString();
+  StaticJsonDocument<1024> doc;
 
   deserializeJson(doc, streamTeste);
   JsonObject object = doc.as<JsonObject>();
@@ -506,25 +354,57 @@ void handle_update_weights(Request &req, Response &res)
   res.status(200);
 }
 
-
-//TODO: Implementar JSON de resposta, substituindo o Serial.Print.
-//callback for GET /handle_current_weights
-//get classifier weigths
-void handle_get_weights(Request &req, Response &res)
+void handle_resultado_captura(Request &req, Response &res)
 {
+  StaticJsonDocument<1024> objeto;
+  JsonArray vetorRms = objeto.to<JsonArray>();
 
-//    Serial.println("comecou");
-
-  for(int i = 0; i<tamanhoMaximoCamdas; i++){
-     for(int j = 0; j<tamanhoMaximoCamdas; j++){
-         for(int k = 0; k<tamanhoMaximoCamdas;k++){
-//            Serial.print(listaPesos[i][j][k]);
-         }
-//            Serial.println("");
-     }
+  for(int i =0; i < indexCapturas; i++)
+  {
+    vetorRms.add(capturasRealizadas[i]);
+    capturasRealizadas[i] = 0;
   }
+
+  String json;
+  serializeJson(objeto, json);
+
   res.set("Content-Type", "application/json");
-//  Serial.println("cabou");
+  res.status(200);
+  res.print(json);
+
+  estadoAtualCaptura = false;
+}
+
+void handle_timestamps(Request &req, Response &res)
+{
+  StaticJsonDocument<512> objeto;
+  JsonArray smptime = objeto.to<JsonArray>();
+
+  for(int i =0; i < ADC_SAMPLES; i++)
+  {
+    smptime.add(sampletime_us[i]);
+  }
+
+  String json;
+  serializeJson(objeto, json);
+
+  res.set("Content-Type", "application/json");
+  res.status(200);
+  res.print(json);
+
+  estadoAtualCaptura = false;
+}
+
+
+void handle_realizar_captura(Request &req, Response &res)
+{
+  estadoAtualCaptura = true;
+  indexCapturas = 0;
+  
+  res.status(200);
+  res.print(estadoAtualCaptura);
+
+  indexCapturas = 0;
 }
 
 //using time.h tm struct to print time
@@ -578,46 +458,37 @@ void setup()
      }
   }
   
-  int camadaAtualRede = tamanhoJanela;
-  for(int i = 0; i < dimensaoCamadasRede ; i++) {
-    valorDosNos[i] =  new float[camadaAtualRede];
-    camadaAtualRede = topologiaRede[i];
+  valorDosNos[0] =  new float[tamanhoJanela];
+  for(int i = 0; i < dimensaoCamadasRede; i++) {
+    int camadaAtualRede = topologiaRede[i];
+    valorDosNos[i + 1] =  new float[camadaAtualRede];
     for(int j = 0; j < camadaAtualRede; j++) {
       valorDosNos[i][j] = 0;
     }
   }
 
   for(int i = 0; i < dimensaoCamadasRede ; i++) {
-    camadaAtualRede = topologiaRede[i];
+    int camadaAtualRede = topologiaRede[i];
     listaBias[i] =  new float[camadaAtualRede];
     for(int j = 0; j < camadaAtualRede; j++) {
       listaBias[i][j] = 0;
     }
   }
-
-
   // Init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   printLocalTime();
   oldfreeheap = ESP.getFreeHeap();
 
-  //webserver app routing
-  app.get("/", &handle_alldata);
   app.get("/freeheap", &handle_freeheap);
-  app.get("/i_rms_data", &handle_i_rms_data);
-  app.get("/i_rms", &handle_i_rms);
-  app.get("/adc_data", &handle_adc_data);
   app.get("/events", &handle_events);
   app.post("/AtualizarClassificador", &handle_update_weights);
-  app.get("/PesosAtuais", &handle_get_weights);
-  app.get("/ConsumoTotal", &handle_consumo_total);
-
-  
+  app.get("/RealizarCaptura", &handle_realizar_captura);
+  app.get("/ObterResultadoCaptura", &handle_resultado_captura);
+  app.get("/Tempos", &handle_timestamps);
 
   app.use(&notFound);
 
   server.begin();
-
   //warm up A/D configuration before interruption
   int temp = analogRead(34);
 
@@ -673,17 +544,22 @@ void loop()
       // Stop and keep timer
       timerStop(timer0);
       //ensures no reading/writing to variables used by ISR
-      portENTER_CRITICAL(&timerMux);
-      
+      portENTER_CRITICAL(&timerMux);  
       isrCounter = 0;
       for (int i = 0; i < ADC_SAMPLES; i++)
       {
         buffer_adc_data[i] = adc_data[i];
         buffer_sampletime_us[i] = sampletime_us[i];
       }
+      portEXIT_CRITICAL(&timerMux);
 
       i_rms = calcularRms(buffer_adc_data);
-
+      
+      if (estadoAtualCaptura && (indexCapturas < tamanhoVetorEventosDetectados)) {
+        capturasRealizadas[indexCapturas] = i_rms;
+        indexCapturas++;
+      }
+      
       i_rms_data[i_rms_data_idx] = i_rms;
       
       //prevent saving zeros or invalid values to rms vector
@@ -692,8 +568,7 @@ void loop()
         i_rms_data[i_rms_data_idx] = 0.001;
       else //not first element
         i_rms_data[i_rms_data_idx] = i_rms_data[i_rms_data_idx - 1];
-        
-      portEXIT_CRITICAL(&timerMux);
+      
 
       //create classifier input vector
       for (int i = 0; i < tamanhoJanela; i++)
@@ -704,18 +579,17 @@ void loop()
         }
         else
         {
-          portENTER_CRITICAL(&timerMux);
-          float valorRmsAtual = i_rms_data[i_rms_data_idx];
-          valorDosNos[0][i] = valorRmsAtual;
-          CONSUMO_TOTAL += valorRmsAtual;
-          portEXIT_CRITICAL(&timerMux);
+          valorDosNos[0][i] = i_rms_data[i_rms_data_idx];
+          CONSUMO_TOTAL = CONSUMO_TOTAL + valorDosNos[0][i];
         }
       }
+
       //run classifier after tamanhoJanela rms samples
       if (rmsCalculados >= tamanhoJanela)
       {
+
         int camadaAtualRede = tamanhoJanela;
-        for(int i = 0; i < dimensaoCamadasRede; i++) {
+        for(int i = 0; i < dimensaoCamadasRede - 1; i++) {
           int proximaCamadaRede = topologiaRede[i];
           propagarEntradaParaProximaCamada(valorDosNos[i], camadaAtualRede, valorDosNos[i + 1], proximaCamadaRede, listaPesos[i], listaBias[i]);
           camadaAtualRede = proximaCamadaRede;
@@ -731,11 +605,9 @@ void loop()
             tempoVetorEventosDetectados[vetorEventosDetectadosIdx] = 0;
           else
             tempoVetorEventosDetectados[vetorEventosDetectadosIdx] = mktime(&timeinfo);
-
-          portENTER_CRITICAL(&timerMux);
+            
           variacaoDeCorrenteNoEvento[vetorEventosDetectadosIdx] =  i_rms_data[i_rms_data_idx_anterior] - i_rms_data[i_rms_data_idx];
-          portEXIT_CRITICAL(&timerMux);
-                    
+
           vetorEventosDetectadosIdx++;
         }
 
@@ -751,7 +623,6 @@ void loop()
       }
       else rmsCalculados++;
       
-      portENTER_CRITICAL(&timerMux);
       i_rms_data_idx_anterior = i_rms_data_idx;
       if (vetorEventosDetectadosIdx >= tamanhoVetorEventosDetectados)
         vetorEventosDetectadosIdx = 0;
@@ -760,8 +631,6 @@ void loop()
         i_rms_data_idx = 0;
       //wifi check counter increases every rms sample
       wificheckcount++;
-      portEXIT_CRITICAL(&timerMux);
-
     }
   }
   //verify wifi connection and reboot
@@ -811,8 +680,8 @@ void loop()
     app.process(&client);
   }
 
-//  if (deveReiniciar)
-//  {
-//    ESP.restart();
-//  }
+  if (deveReiniciar)
+  {
+    ESP.restart();
+  }
 }
