@@ -11,8 +11,8 @@
 #include "time.h"
 #include <ArduinoJson.h>
 
- const char* ssid = "VIVOFIBRA-8CDC";
- const char* password = "EAEA7A8CDC";
+ const char* ssid = "FIBRA-A0DC";
+ const char* password = "0Z36005657";
 
 //  const char* ssid = "NET_2G41237E";
 //  const char* password = "B341237E";
@@ -20,8 +20,8 @@
 //const char* ssid     = "ele nao ";
 //const char* password = "h24i26d23";
 
-//const char* ssid     = "Laura";
-//const char* password = "helena1997";
+// const char* ssid     = "Laura";
+// const char* password = "helena1997";
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800; //-3h GMT
@@ -72,7 +72,7 @@ bool estadoAtualCaptura = false;
 /*
    Parâmetros da rede
 */
-float topologiaRede[dimensaoCamadasRede] = {tamanhoCamada1, tamanhoCamada2, tamanhoCamada3, tamanhoCamada4, tamanhoSaidaRede};
+float *topologiaRede = new float[dimensaoCamadasRede];
 DRAM_ATTR float ***listaPesos = new float**[tamanhoMaximoCamdas];
 DRAM_ATTR float **listaBias = new float*[dimensaoCamadasRede];
 DRAM_ATTR float **valorDosNos = new float*[dimensaoCamadasRede + 1];
@@ -296,20 +296,29 @@ void handle_freeheap(Request &req, Response &res)
 //send all event log
 void handle_events(Request &req, Response &res)
 {
-  StaticJsonDocument<1024> objeto;  
+  DynamicJsonDocument objeto(20480);
 
-  JsonArray vetorVariacao = objeto.createNestedArray("variacao");
-  JsonArray vetorEvento = objeto.createNestedArray("evento");
-  JsonArray vetorTempo = objeto.createNestedArray("tempo");
-  
-  objeto["consumoTotal"] = CONSUMO_TOTAL;
+  JsonArray variacaoPorEvento = objeto.createNestedArray("variacaoPorEvento");
+
+  const size_t CAPACITY = JSON_OBJECT_SIZE(3);
 
   for(int i = 0; i < tamanhoVetorEventosDetectados; i++)
   {
-    vetorVariacao.add(variacaoDeCorrenteNoEvento[i]);
-    vetorTempo.add(tempoVetorEventosDetectados[i]);
-    vetorEvento.add(vetorEventosDetectados[i]);
+    if (vetorEventosDetectados[i] == 0) {
+      continue;
+    }
+
+    StaticJsonDocument<CAPACITY> docVariacaoObjeto;
+    JsonObject variacaoDoEvento = docVariacaoObjeto.to<JsonObject>();
+
+    variacaoDoEvento["variacaoCorrente"] = variacaoDeCorrenteNoEvento[i];
+    variacaoDoEvento["epoch"] = tempoVetorEventosDetectados[i];
+    variacaoDoEvento["tipoEvento"] = vetorEventosDetectados[i];
+
+    variacaoPorEvento.add(variacaoDoEvento);
   }
+
+  objeto["consumoTotal"] = CONSUMO_TOTAL;
 
   String json;
   serializeJson(objeto, json);
@@ -330,11 +339,14 @@ void handle_update_weights(Request &req, Response &res)
 {
   res.set("Content-Type", "application/json");
   String streamTeste = req.readString();
-  StaticJsonDocument<1024> doc;
+  DynamicJsonDocument doc(16384);
 
   deserializeJson(doc, streamTeste);
   JsonObject object = doc.as<JsonObject>();
-  
+
+  JsonArray tamanhoCamadas = object["camadas"].as<JsonArray>();
+  copyArray(tamanhoCamadas, topologiaRede, dimensaoCamadasRede);  
+    
   for (int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
     int dimensaoCamadaAtual = topologiaRede[camadaAtual];
     JsonArray biasCamadaAtual = object["bias"][camadaAtual].as<JsonArray>();
@@ -351,6 +363,61 @@ void handle_update_weights(Request &req, Response &res)
     camadaEntrada = dimensaoProximaCamada;
   }
   
+  res.status(200);
+}
+
+void handle_get_current_weights(Request &req, Response &res)
+{
+  DynamicJsonDocument objeto(16384);
+
+  JsonArray bias = objeto.createNestedArray("bias");
+  JsonArray coefs = objeto.createNestedArray("coefs");
+  
+  for (int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+    int dimensaoCamadaAtual = topologiaRede[camadaAtual];
+    Serial.println(dimensaoCamadaAtual);
+    
+    StaticJsonDocument<256> biasCamadaAtual;
+    copyArray(listaBias[camadaAtual], dimensaoCamadaAtual,biasCamadaAtual.to<JsonArray>());
+
+    bias.add(biasCamadaAtual);
+  }
+
+  int camadaEntrada = tamanhoJanela;
+  for (int camadaAtual = 0; camadaAtual < dimensaoCamadasRede; camadaAtual++) {
+    int dimensaoProximaCamada = topologiaRede[camadaAtual];
+    StaticJsonDocument<2048> docCoefsDe;
+    JsonArray coefsDe = docCoefsDe.to<JsonArray>();
+    
+    for (int noDe = 0; noDe < camadaEntrada; noDe++) {
+       StaticJsonDocument<256> coefsPara;
+       copyArray(listaPesos[camadaAtual][noDe], dimensaoProximaCamada, coefsPara.to<JsonArray>());
+
+       coefsDe.add(coefsPara);
+    }
+    coefs.add(coefsDe);
+    camadaEntrada = dimensaoProximaCamada;
+  }
+
+  String json;
+  serializeJson(objeto, json);
+  
+  res.set("Content-Type", "application/json");
+  res.status(200);
+  res.print(json);
+}
+
+void handler_atualizar_tamnho_camadas(Request &req, Response &res)
+{
+  String streamCamadas = req.readString();
+  DynamicJsonDocument doc(64);
+
+  deserializeJson(doc, streamCamadas);
+  JsonArray object = doc.as<JsonArray>();
+  
+  copyArray(object, topologiaRede, dimensaoCamadasRede);  
+    
+  res.set("Content-Type", "application/json");
   res.status(200);
 }
 
@@ -447,7 +514,9 @@ void setup()
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-
+  
+  topologiaRede[0] = tamanhoCamada1; topologiaRede[1] = tamanhoCamada2; topologiaRede[2] = tamanhoCamada3; topologiaRede[3] = tamanhoCamada4; topologiaRede[4] = tamanhoSaidaRede;
+  
   for(int i = 0; i<tamanhoMaximoCamdas; i++){
      listaPesos[i] = new float*[tamanhoMaximoCamdas];
      for(int j = 0; j<tamanhoMaximoCamdas; j++){
@@ -479,12 +548,14 @@ void setup()
   printLocalTime();
   oldfreeheap = ESP.getFreeHeap();
 
-  app.get("/freeheap", &handle_freeheap);
-  app.get("/events", &handle_events);
+  app.get("/Freeheap", &handle_freeheap);
+  app.get("/Events", &handle_events);
   app.post("/AtualizarClassificador", &handle_update_weights);
   app.get("/RealizarCaptura", &handle_realizar_captura);
   app.get("/ObterResultadoCaptura", &handle_resultado_captura);
   app.get("/Tempos", &handle_timestamps);
+  app.get("/PesosAtuais", &handle_get_current_weights);
+  app.post("/AtualizarTamanhoCamadas", &handler_atualizar_tamnho_camadas);
 
   app.use(&notFound);
 
